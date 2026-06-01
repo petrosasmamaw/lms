@@ -2,8 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { config } from 'dotenv';
-import { testConnection } from './src/db/index.js';
-import { auth } from './src/config/auth.js';
+import { testConnection } from './db/index.js';
+import { auth } from './config/auth.js';
 
 config();
 
@@ -25,18 +25,65 @@ app.get('/api/health', (req, res) => {
 });
 
 // Better Auth routes
-app.all('/api/auth/*', (req, res) => {
-  return auth.handler(req, res);
+app.all('/api/auth/*', async (req, res) => {
+  // Extract the auth route path (e.g., '/get-session' from '/api/auth/get-session')
+  const authPath = req.path.substring(9); // Remove '/api/auth' prefix
+  const baseAuthURL = process.env.BETTER_AUTH_URL || 'http://localhost:5001/api/auth';
+  const fullUrl = `${baseAuthURL}${authPath}${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;
+  
+  const method = req.method;
+  const headers = new Headers(req.headers);
+  headers.delete('host'); // Remove host header to avoid conflicts
+  
+  let body = undefined;
+  if (method !== 'GET' && method !== 'HEAD' && (req.body || req.rawBody)) {
+    body = req.rawBody || (req.body ? JSON.stringify(req.body) : undefined);
+  }
+  
+  const webRequest = new Request(fullUrl, {
+    method,
+    headers,
+    body,
+  });
+  
+  try {
+    const webResponse = await auth.handler(webRequest);
+    
+    // Set response headers from web response
+    for (const [key, value] of webResponse.headers.entries()) {
+      res.set(key, value);
+    }
+    
+    // Ensure CORS headers are set
+    const origin = req.get('origin');
+    const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5174'];
+    if (allowedOrigins.includes(origin)) {
+      res.set('Access-Control-Allow-Origin', origin);
+      res.set('Access-Control-Allow-Credentials', 'true');
+      res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    }
+    
+    // Set status code
+    res.status(webResponse.status);
+    
+    // Send response body
+    const responseBody = await webResponse.text();
+    res.send(responseBody);
+  } catch (error) {
+    console.error('Auth handler error:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
 });
 
 // Import route handlers
-import departmentRoutes from './src/routes/departmentRoutes.js';
-import academicYearRoutes from './src/routes/academicYearRoutes.js';
-import courseRoutes from './src/routes/courseRoutes.js';
-import resourceRoutes from './src/routes/resourceRoutes.js';
-import examRoutes from './src/routes/examRoutes.js';
-import questionRoutes from './src/routes/questionRoutes.js';
-import resultRoutes from './src/routes/resultRoutes.js';
+import departmentRoutes from './routes/departmentRoutes.js';
+import academicYearRoutes from './routes/academicYearRoutes.js';
+import courseRoutes from './routes/courseRoutes.js';
+import resourceRoutes from './routes/resourceRoutes.js';
+import examRoutes from './routes/examRoutes.js';
+import questionRoutes from './routes/questionRoutes.js';
+import resultRoutes from './routes/resultRoutes.js';
 
 // Register routes
 app.use('/api/departments', departmentRoutes);

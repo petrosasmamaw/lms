@@ -1,6 +1,6 @@
 import express from 'express';
 import * as academicYearController from '../controllers/academicYearController.js';
-import { isAdmin, authenticateUser } from '../middleware/auth.js';
+import { authenticateUser, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -11,12 +11,12 @@ router.get('/', academicYearController.getAcademicYears);
 router.get('/:id', academicYearController.getAcademicYearById);
 
 // Admin only - Create academic year
-router.post('/', authenticateUser, isAdmin, academicYearController.createAcademicYear);
+router.post('/', authenticateUser, requireAdmin, academicYearController.createAcademicYear);
 
 // Admin only - Update academic year
-router.put('/:id', authenticateUser, isAdmin, academicYearController.updateAcademicYear);
+router.put('/:id', authenticateUser, requireAdmin, academicYearController.updateAcademicYear);
 
 // Admin only - Delete academic year
-router.delete('/:id', authenticateUser, isAdmin, academicYearController.deleteAcademicYear);
+router.delete('/:id', authenticateUser, requireAdmin, academicYearController.deleteAcademicYear);
 
 export default router;

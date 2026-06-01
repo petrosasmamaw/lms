@@ -1,5 +1,5 @@
 import { db } from '../db/index.js';
-import { departments, academicYears, courses } from '../db/schema.js';
+import { departments, courses } from '../db/schema.js';
 import { eq, desc } from 'drizzle-orm';
 
 // Get all departments
@@ -45,11 +45,9 @@ export const deleteDepartment = async (id) => {
 export const getDepartmentWithYears = async (id) => {
   const dept = await getDepartmentById(id);
   if (!dept) return null;
-
-  const years = await db.query.academicYears.findMany({
-    where: eq(academicYears.departmentId, id),
-  });
-
+  // collect distinct years from courses for this department
+  const deptCourses = await db.query.courses.findMany({ where: eq(courses.departmentId, id) });
+  const years = Array.from(new Set(deptCourses.map((c) => c.year))).sort();
   return { ...dept, academicYears: years };
 };
 
@@ -59,11 +57,11 @@ export const getDepartmentFull = async (id) => {
   if (!dept) return null;
 
   const yearData = await Promise.all(
-    dept.academicYears.map(async (year) => {
+    dept.academicYears.map(async (yr) => {
       const yearCourses = await db.query.courses.findMany({
-        where: eq(courses.academicYearId, year.id),
+        where: eq(courses.year, yr),
       });
-      return { ...year, courses: yearCourses };
+      return { year: yr, courses: yearCourses };
     })
   );
 

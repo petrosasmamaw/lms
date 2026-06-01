@@ -1,50 +1,42 @@
 import { db } from '../db/index.js';
-import { users } from '../db/schema.js';
+import { users, session } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 
+// Authenticate by reading Better Auth session token cookie and resolving user
 export async function authenticateUser(req, res, next) {
   try {
-    // Get session token from cookies
-    const sessionToken = req.cookies['better-auth.session_token'];
-    
-    if (!sessionToken) {
-      return res.status(401).json({ success: false, message: 'Unauthorized - No session' });
-    }
+    const sessionToken = req.cookies['better-auth.session_token'] || req.cookies['better-auth.session'];
+    if (!sessionToken) return res.status(401).json({ success: false, message: 'Unauthorized - no session' });
 
-    // For now, get user from req.user if Better Auth middleware provides it
-    // In production, you might want to verify the session token separately
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ success: false, message: 'Unauthorized - Invalid session' });
-    }
+    // Look up session in DB
+    const found = await db.select().from(session).where(eq(session.token, sessionToken)).limit(1);
+    const s = found && found[0];
+    if (!s) return res.status(401).json({ success: false, message: 'Unauthorized - session not found' });
 
-    // Get user details from database
-    const user = await db.query.users.findFirst({
-      where: eq(users.userId, req.user.id),
-    });
+    // Look up user by auth id
+    const u = await db.select().from(users).where(eq(users.authUserId, s.userId)).limit(1);
+    const user = u && u[0];
+    if (!user) return res.status(401).json({ success: false, message: 'User not found' });
 
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'User not found' });
-    }
-
+    req.user = user;
     req.userId = user.id;
     req.userRole = user.role;
-    req.user = user;
     next();
-  } catch (error) {
-    console.error('[AUTH] Error:', error);
-    res.status(500).json({ success: false, message: 'Authentication failed' });
+  } catch (err) {
+    console.error('[AUTH] error', err);
+    res.status(500).json({ success: false, message: 'Authentication error' });
   }
 }
 
-export function isAdmin(req, res, next) {
+export function requireAdmin(req, res, next) {
   if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
-  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Forbidden - Admin access required' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Forbidden - admin only' });
   next();
 }
 
-export function isStudent(req, res, next) {
+export function requireStudent(req, res, next) {
   if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
-  if (req.user.role !== 'student') return res.status(403).json({ success: false, message: 'Forbidden - Student access required' });
+  if (req.user.role !== 'student') return res.status(403).json({ success: false, message: 'Forbidden - students only' });
   next();
 }
 

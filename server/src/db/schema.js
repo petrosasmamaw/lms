@@ -1,18 +1,20 @@
 import { pgTable, text, serial, timestamp, integer, boolean, varchar, decimal, foreignKey, unique } from 'drizzle-orm/pg-core';
 
-// Users table (Better Auth will manage auth, we extend it)
+// Users table (linked to Better Auth via `auth_user_id`)
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  userId: text('user_id').notNull().unique(), // From Better Auth
+  authUserId: text('auth_user_id').notNull().unique(), // Better Auth user id
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
-  role: varchar('role', { length: 50 }).notNull().default('student'), // 'admin' or 'student'
-  departmentId: integer('department_id'),
-  academicYearId: integer('academic_year_id'),
-  studentId: varchar('student_id', { length: 50 }),
+  password: text('password'), // optional hashed password (kept in sync for legacy flows)
+  role: varchar('role', { length: 20 }).notNull().default('student'), // 'admin' or 'student'
+  departmentId: integer('department_id'), // NULL for admins
+  year: integer('year'), // academic year (1..4) - NULL for admins
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  departmentFk: foreignKey({ columns: [table.departmentId], foreignColumns: [] }),
+}));
 
 // Departments table
 export const departments = pgTable('departments', {
@@ -24,25 +26,13 @@ export const departments = pgTable('departments', {
 });
 
 // Academic Years table (Year 1, 2, 3, 4)
-export const academicYears = pgTable('academic_years', {
-  id: serial('id').primaryKey(),
-  departmentId: integer('department_id').notNull(),
-  yearName: varchar('year_name', { length: 50 }).notNull(), // 'Year 1', 'Year 2', etc.
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => ({
-  departmentFk: foreignKey({
-    columns: [table.departmentId],
-    foreignColumns: [departments.id],
-  }),
-  uniqueDeptYear: unique().on(table.departmentId, table.yearName),
-}));
+// NOTE: academic years are modelled as integer `year` on users and courses per spec
 
 // Courses table
 export const courses = pgTable('courses', {
   id: serial('id').primaryKey(),
   departmentId: integer('department_id').notNull(),
-  academicYearId: integer('academic_year_id').notNull(),
+  year: integer('year').notNull(), // numeric year (1..4)
   name: varchar('name', { length: 255 }).notNull(),
   code: varchar('code', { length: 50 }).notNull(),
   description: text('description'),
@@ -54,10 +44,6 @@ export const courses = pgTable('courses', {
     columns: [table.departmentId],
     foreignColumns: [departments.id],
   }),
-  yearFk: foreignKey({
-    columns: [table.academicYearId],
-    foreignColumns: [academicYears.id],
-  }),
 }));
 
 // Resources table (PDFs, Videos, etc.)
@@ -65,9 +51,9 @@ export const resources = pgTable('resources', {
   id: serial('id').primaryKey(),
   courseId: integer('course_id').notNull(),
   title: varchar('title', { length: 255 }).notNull(),
-  description: text('description'),
-  fileUrl: text('file_url').notNull(),
-  fileType: varchar('file_type', { length: 50 }).notNull(), // 'pdf', 'video', 'doc', etc.
+  type: varchar('type', { length: 20 }).notNull(), // 'pdf','doc','video'
+  url: text('url').notNull(), // Cloudinary URL
+  publicId: text('public_id'), // Cloudinary public_id
   uploadedBy: integer('uploaded_by'), // User ID
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -84,10 +70,6 @@ export const exams = pgTable('exams', {
   courseId: integer('course_id').notNull(),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
-  totalQuestions: integer('total_questions').default(0),
-  passingPercentage: decimal('passing_percentage', { precision: 5, scale: 2 }).default('40.00'),
-  duration: integer('duration').default(60), // in minutes
-  isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -102,12 +84,6 @@ export const questions = pgTable('questions', {
   id: serial('id').primaryKey(),
   examId: integer('exam_id').notNull(),
   questionText: text('question_text').notNull(),
-  optionA: text('option_a').notNull(),
-  optionB: text('option_b').notNull(),
-  optionC: text('option_c').notNull(),
-  optionD: text('option_d').notNull(),
-  correctAnswer: varchar('correct_answer', { length: 1 }).notNull(), // A, B, C, D
-  explanation: text('explanation'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -117,46 +93,44 @@ export const questions = pgTable('questions', {
   }),
 }));
 
-// Results table
-export const results = pgTable('results', {
+// Choices for each question
+export const choices = pgTable('choices', {
   id: serial('id').primaryKey(),
-  studentId: integer('student_id').notNull(),
-  examId: integer('exam_id').notNull(),
-  totalQuestions: integer('total_questions').notNull(),
-  correctAnswers: integer('correct_answers').notNull(),
-  score: decimal('score', { precision: 5, scale: 2 }).notNull(),
-  percentage: decimal('percentage', { precision: 5, scale: 2 }).notNull(),
-  status: varchar('status', { length: 50 }).default('completed'), // 'completed', 'pending'
-  submittedAt: timestamp('submitted_at').defaultNow().notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
-  studentFk: foreignKey({
-    columns: [table.studentId],
-    foreignColumns: [users.id],
-  }),
-  examFk: foreignKey({
-    columns: [table.examId],
-    foreignColumns: [exams.id],
-  }),
-}));
-
-// Student Answers table
-export const studentAnswers = pgTable('student_answers', {
-  id: serial('id').primaryKey(),
-  studentId: integer('student_id').notNull(),
   questionId: integer('question_id').notNull(),
-  selectedAnswer: varchar('selected_answer', { length: 1 }),
+  choiceText: text('choice_text').notNull(),
   isCorrect: boolean('is_correct').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
-  studentFk: foreignKey({
-    columns: [table.studentId],
-    foreignColumns: [users.id],
-  }),
-  questionFk: foreignKey({
-    columns: [table.questionId],
-    foreignColumns: [questions.id],
-  }),
+  questionFk: foreignKey({ columns: [table.questionId], foreignColumns: [questions.id] }),
+}));
+
+// Results table
+// Student exam attempts / results
+export const student_exam_attempts = pgTable('student_exam_attempts', {
+  id: serial('id').primaryKey(),
+  studentId: integer('student_id').notNull(),
+  examId: integer('exam_id').notNull(),
+  score: decimal('score', { precision: 5, scale: 2 }),
+  submittedAt: timestamp('submitted_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  studentFk: foreignKey({ columns: [table.studentId], foreignColumns: [users.id] }),
+  examFk: foreignKey({ columns: [table.examId], foreignColumns: [exams.id] }),
+}));
+
+// Student Answers table
+// Student answers (linked to choices)
+export const student_answers = pgTable('student_answers', {
+  id: serial('id').primaryKey(),
+  studentId: integer('student_id').notNull(),
+  questionId: integer('question_id').notNull(),
+  choiceId: integer('choice_id'),
+  isCorrect: boolean('is_correct').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  studentFk: foreignKey({ columns: [table.studentId], foreignColumns: [users.id] }),
+  questionFk: foreignKey({ columns: [table.questionId], foreignColumns: [questions.id] }),
+  choiceFk: foreignKey({ columns: [table.choiceId], foreignColumns: [choices.id] }),
 }));
 
 // Enrollments table (Track which students are enrolled in which courses)
@@ -167,12 +141,46 @@ export const enrollments = pgTable('enrollments', {
   enrolledAt: timestamp('enrolled_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),
 }, (table) => ({
-  studentFk: foreignKey({
-    columns: [table.studentId],
-    foreignColumns: [users.id],
-  }),
-  courseFk: foreignKey({
-    columns: [table.courseId],
-    foreignColumns: [courses.id],
-  }),
+  studentFk: foreignKey({ columns: [table.studentId], foreignColumns: [users.id] }),
+  courseFk: foreignKey({ columns: [table.courseId], foreignColumns: [courses.id] }),
 }));
+
+// Better Auth Tables
+// Session table for Better Auth
+export const session = pgTable('session', {
+  id: text('id').primaryKey(),
+  expiresAt: timestamp('expires_at').notNull(),
+  token: text('token').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  userId: text('user_id').notNull(),
+});
+
+// Account table for Better Auth (for OAuth/external auth)
+export const account = pgTable('account', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id').notNull(),
+  providerId: text('provider_id').notNull(),
+  userId: text('user_id').notNull(),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  idToken: text('id_token'),
+  accessTokenExpiresAt: timestamp('access_token_expires_at'),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+  scope: text('scope'),
+  password: text('password'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Verification table for Better Auth (for email verification, password reset, etc.)
+export const verification = pgTable('verification', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at'),
+  updatedAt: timestamp('updated_at'),
+});

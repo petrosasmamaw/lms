@@ -58,12 +58,7 @@ export async function deleteDepartment(req, res) {
     const { id } = req.params;
     await departmentService.deleteDepartment(id);
     success(res, null, 'Department deleted successfully');
-
-export async function listDepartments(req, res, next) {
-  try {
-    const list = await deptService.getAllDepartments()
-    return success(res, { departments: list }, 'Departments')
   } catch (err) {
-    next(err)
+    error(res, 'Failed to delete department', 500, err.message);
   }
 }
