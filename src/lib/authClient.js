@@ -1,0 +1,13 @@
+import { createAuthClient } from "better-auth/react";
+
+// Use the backend auth URL for API calls
+const baseURL = import.meta.env.VITE_BETTER_AUTH_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+export const authClient = createAuthClient({
+    baseURL,
+    fetchOptions: {
+        credentials: "include",
+    },
+});
+
+export const { signIn, signUp, signOut, useSession } = authClient;

@@ -1,0 +1,76 @@
+import dotenv from 'dotenv'
+
+dotenv.config()
+
+let authInstance = null
+let enabled = false
+
+try {
+  const { betterAuth } = await import('better-auth/minimal')
+  // Attempt to import the drizzle adapter from nested better-auth package if top-level import isn't available
+  let drizzleAdapter
+  try {
+    const mod = await import('@better-auth/drizzle-adapter')
+    drizzleAdapter = mod.drizzleAdapter
+  } catch (e) {
+    try {
+      const nestedPath = `file://${process.cwd().replace(/\\/g, '/')}/node_modules/better-auth/node_modules/@better-auth/drizzle-adapter/dist/index.mjs`
+      const nested = await import(nestedPath)
+      drizzleAdapter = nested.drizzleAdapter
+    } catch (e2) {
+      // rethrow original
+      throw e
+    }
+  }
+  const dbModule = await import('./drizzle.js')
+  const db = dbModule.default || dbModule.db
+
+  // Try to include the email/password plugin if available
+  const plugins = []
+  try {
+    const emailMod = await import('@better-auth/email-password')
+    const emailPlugin = emailMod.emailPassword || emailMod.default || null
+    if (typeof emailPlugin === 'function') {
+      plugins.push(emailPlugin())
+      // eslint-disable-next-line no-console
+      console.log('Better Auth: email-password plugin loaded')
+    }
+  } catch (e) {
+    // package not installed or not found — continue without it
+  }
+
+  authInstance = betterAuth({
+    // In minimal mode, pass the adapter as the database option
+    database: drizzleAdapter(db, { provider: 'pg' }),
+    plugins,
+    baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+    // enable rate limit storage in database
+    rateLimit: { storage: 'database' }
+  })
+  // Enable email/password flows by setting options at runtime (dev-friendly)
+  try {
+    authInstance.options = authInstance.options || {}
+    authInstance.options.emailPassword = authInstance.options.emailPassword || {}
+    authInstance.options.emailPassword.enabled = true
+    authInstance.options.emailPassword.signUp = true
+    authInstance.options.emailPassword.signIn = true
+    // eslint-disable-next-line no-console
+    console.log('Better Auth: email/password enabled via runtime options')
+  } catch (e) {
+    // ignore if shape unsupported
+  }
+  enabled = true
+  // eslint-disable-next-line no-console
+  console.log('Better Auth initialized (drizzle adapter)')
+} catch (err) {
+  // eslint-disable-next-line no-console
+  console.warn('Better Auth not initialized — falling back to JWT auth', err?.message || '')
+}
+
+export function isEnabled() {
+  return enabled
+}
+
+export function getAuth() {
+  return authInstance
+}
