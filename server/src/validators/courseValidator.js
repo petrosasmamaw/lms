@@ -1,6 +1,7 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 export const courseSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  department_id: z.string().or(z.number()).transform((val) => Number(val))
-})
+  departmentId: z.coerce.number().int().positive(),
+  year: z.coerce.number().int().min(1).max(4),
+});

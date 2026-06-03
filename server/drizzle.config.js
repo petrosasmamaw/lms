@@ -5,8 +5,9 @@ config();
 export default {
   schema: './src/db/schema.js',
   out: './src/db/migrations',
-  driver: 'pg',
+  // drizzle-kit expects a 'dialect' value like 'postgresql'|'mysql'|'sqlite'
+  dialect: 'postgresql',
   dbCredentials: {
-    connectionString: process.env.DATABASE_URL,
+    url: process.env.DATABASE_URL,
   },
 };

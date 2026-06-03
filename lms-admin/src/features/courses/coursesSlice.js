@@ -1,10 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import axios from '../../api/axiosInstance'
+import { unwrap } from '../../api/unwrap'
 
-export const fetchCourses = createAsyncThunk('courses/fetch', async (query = '', { rejectWithValue }) => {
+export const fetchCourses = createAsyncThunk('courses/fetch', async (params = {}, { rejectWithValue }) => {
   try {
-    const res = await axios.get(`/courses${query}`)
-    return res.data
+    const query = {}
+    if (params.departmentId) query.departmentId = params.departmentId
+    if (params.year) query.year = params.year
+    const res = await axios.get('/courses', { params: Object.keys(query).length ? query : undefined })
+    const data = unwrap(res)
+    return data.courses || []
   } catch (err) {
     return rejectWithValue(err.response?.data || err.message)
   }
@@ -13,7 +18,8 @@ export const fetchCourses = createAsyncThunk('courses/fetch', async (query = '',
 export const createCourse = createAsyncThunk('courses/create', async (payload, { rejectWithValue }) => {
   try {
     const res = await axios.post('/courses', payload)
-    return res.data
+    const data = unwrap(res)
+    return data.course
   } catch (err) {
     return rejectWithValue(err.response?.data || err.message)
   }
@@ -28,11 +34,8 @@ const slice = createSlice({
       .addCase(fetchCourses.pending, (s) => { s.loading = true; s.error = null })
       .addCase(fetchCourses.fulfilled, (s, a) => { s.loading = false; s.list = a.payload })
       .addCase(fetchCourses.rejected, (s, a) => { s.loading = false; s.error = a.payload })
-
-      .addCase(createCourse.pending, (s) => { s.loading = true })
-      .addCase(createCourse.fulfilled, (s, a) => { s.loading = false; s.list.push(a.payload) })
-      .addCase(createCourse.rejected, (s, a) => { s.loading = false; s.error = a.payload })
-  }
+      .addCase(createCourse.fulfilled, (s, a) => { s.list.push(a.payload) })
+  },
 })
 
 export default slice.reducer

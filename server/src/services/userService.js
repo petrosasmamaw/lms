@@ -1,73 +1,40 @@
 import { db } from '../db/index.js';
-import { users } from '../db/schema.js';
-import { eq, desc } from 'drizzle-orm';
+import { user, departments } from '../db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
 
-// Get all users
-export const getAllUsers = async () => {
-  return await db.query.users.findMany({
-    orderBy: [desc(users.createdAt)],
-  });
-};
-
-// Get all students
-export const getAllStudents = async () => {
-  return await db.query.users.findMany({
-    where: eq(users.role, 'student'),
-    orderBy: [users.name],
-  });
-};
-
-// Get all admins
-export const getAllAdmins = async () => {
-  return await db.query.users.findMany({
-    where: eq(users.role, 'admin'),
-    orderBy: [users.name],
-  });
-};
-
-// Get user by ID
-export const getUserById = async (id) => {
-  return await db.query.users.findFirst({
-    where: eq(users.id, id),
-  });
-};
-
-// Get user by email
 export const getUserByEmail = async (email) => {
-  return await db.query.users.findFirst({
-    where: eq(users.email, email),
-  });
+  return db.query.user.findFirst({ where: eq(user.email, email) });
 };
 
-// Get user by userId (from Better Auth)
-export const getUserByUserId = async (userId) => {
-  return await db.query.users.findFirst({
-    where: eq(users.userId, userId),
-  });
+export const getUserById = async (id) => {
+  return db.query.user.findFirst({ where: eq(user.id, id) });
 };
 
-// Create user
-export const createUser = async (data) => {
-  const [user] = await db.insert(users).values(data).returning();
-  return user;
-};
-
-// Update user
-export const updateUser = async (id, data) => {
-  const [user] = await db
-    .update(users)
+export const updateUserProfile = async (id, data) => {
+  const [updated] = await db
+    .update(user)
     .set({ ...data, updatedAt: new Date() })
-    .where(eq(users.id, id))
+    .where(eq(user.id, id))
     .returning();
-  return user;
+  return updated;
 };
 
-// Get students by department
-export const getStudentsByDepartment = async (departmentId) => {
-  return await db.query.users.findMany({
-    where: and(
-      eq(users.role, 'student'),
-      eq(users.departmentId, departmentId)
-    ),
+export const listStudents = async ({ departmentId, year }) => {
+  const conditions = [eq(user.role, 'student')];
+  if (departmentId) conditions.push(eq(user.departmentId, Number(departmentId)));
+  if (year) conditions.push(eq(user.year, Number(year)));
+
+  return db
+    .select()
+    .from(user)
+    .where(and(...conditions))
+    .orderBy(desc(user.createdAt));
+};
+
+export const validateDepartment = async (departmentId) => {
+  if (!departmentId) return false;
+  const dept = await db.query.departments.findFirst({
+    where: eq(departments.id, Number(departmentId)),
   });
+  return Boolean(dept);
 };

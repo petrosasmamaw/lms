@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { login } from '../features/auth/authSlice'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -12,7 +12,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) nav('/dashboard')
-  }, [user])
+  }, [user, nav])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -21,16 +21,36 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-8">
-      <h2 className="text-2xl mb-4">Admin Login</h2>
-      <form onSubmit={handleSubmit} className="space-y-3 bg-gray-800 p-4 rounded">
-        <input className="w-full p-2 rounded bg-gray-900" placeholder="Email" value={email} onChange={(e)=>setEmail(e.target.value)} required />
-        <input className="w-full p-2 rounded bg-gray-900" placeholder="Password" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required />
-        <div>
-          <button className="px-4 py-2 bg-indigo-600 rounded" disabled={loading}>{loading ? 'Logging in...' : 'Log In'}</button>
+    <div className="auth-shell">
+      <div className="auth-card card">
+        <div className="text-center mb-8">
+          <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-xl font-bold shadow-lg shadow-indigo-500/30 mb-4">
+            A
+          </span>
+          <h2 className="text-2xl font-bold text-slate-800">Admin Login</h2>
+          <p className="text-slate-500 text-sm mt-1">Sign in to manage departments and courses</p>
         </div>
-        {error && <p className="text-red-400">{JSON.stringify(error)}</p>}
-      </form>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-600 mb-1.5">Email</label>
+            <input className="input" placeholder="you@university.edu" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-600 mb-1.5">Password</label>
+            <input className="input" placeholder="••••••••" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          <button type="submit" className="btn-primary w-full mt-2" disabled={loading}>
+            {loading ? 'Logging in...' : 'Log In'}
+          </button>
+          {error && <p className="toast-error">{error.message || 'Login failed'}</p>}
+        </form>
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Need an account?{' '}
+          <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-700">
+            Sign up
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

@@ -1,45 +1,76 @@
-import { success, error } from '../utils/response.js'
-import * as resourceService from '../services/resourceService.js'
-import cloudinary from '../config/cloudinary.js'
+import { success, error } from '../utils/response.js';
+import * as resourceService from '../services/resourceService.js';
+import cloudinary from '../config/cloudinary.js';
+import {
+  getCloudinaryUploadOptions,
+  mapResourcesWithDeliveryUrls,
+} from '../utils/cloudinaryDelivery.js';
+import fs from 'fs/promises';
+
+function mapResourceType(mimetype = '', filename = '') {
+  if (mimetype.includes('pdf') || filename.endsWith('.pdf')) return 'pdf';
+  if (mimetype.includes('video') || /\.(mp4|mov|webm)$/i.test(filename)) return 'video';
+  return 'doc';
+}
 
 export async function uploadResource(req, res, next) {
   try {
-    if (!req.file) return error(res, 'No file uploaded', 400)
-    const { originalname, mimetype, path } = req.file
-    const course_id = req.body.course_id
-    // upload to cloudinary
-    const result = await cloudinary.uploader.upload(path, { resource_type: 'auto' })
+    if (!req.file) return error(res, 'No file uploaded', 400);
+
+    const courseId = req.body.courseId || req.body.course_id;
+    if (!courseId) return error(res, 'courseId is required', 400);
+
+    const type = req.body.type || mapResourceType(req.file.mimetype, req.file.originalname);
+    const uploadOptions = getCloudinaryUploadOptions(
+      req.file.mimetype,
+      req.file.originalname,
+      type,
+    );
+
+    const result = await cloudinary.uploader.upload(req.file.path, uploadOptions);
+
+    await fs.unlink(req.file.path).catch(() => {});
 
     const resource = await resourceService.createResource({
-      title: req.body.title || originalname,
-      file_url: result.secure_url,
-      file_type: mimetype,
-      course_id: course_id ? Number(course_id) : null,
-    })
+      courseId: Number(courseId),
+      title: req.body.title || req.file.originalname,
+      type,
+      url: result.secure_url,
+      publicId: result.public_id,
+    });
 
-    return success(res, { resource }, 'Resource uploaded', 201)
+    const [withUrl] = mapResourcesWithDeliveryUrls([resource]);
+    return success(res, { resource: withUrl }, 'Resource uploaded', 201);
   } catch (err) {
-    next(err)
+    next(err);
   }
 }
 
 export async function listResources(req, res, next) {
   try {
-    const { courseId } = req.query
-    if (!courseId) return error(res, 'courseId query required', 400)
-    const list = await resourceService.getResourcesByCourse(courseId)
-    return success(res, { resources: list }, 'Resources')
+    const { courseId } = req.query;
+    if (!courseId) return error(res, 'courseId query required', 400);
+    const list = await resourceService.getResourcesByCourse(courseId);
+    return success(res, { resources: mapResourcesWithDeliveryUrls(list) }, 'Resources');
   } catch (err) {
-    next(err)
+    next(err);
   }
 }
 
 export async function deleteResource(req, res, next) {
   try {
-    const { id } = req.params
-    await resourceService.deleteResource(id)
-    return success(res, {}, 'Resource deleted')
+    const existing = await resourceService.getResourceById(req.params.id);
+    if (existing?.publicId) {
+      const resourceType = existing.url?.includes('/video/upload/')
+        ? 'video'
+        : existing.url?.includes('/image/upload/')
+          ? 'image'
+          : 'raw';
+      await cloudinary.uploader.destroy(existing.publicId, { resource_type: resourceType }).catch(() => {});
+    }
+    await resourceService.deleteResource(req.params.id);
+    return success(res, {}, 'Resource deleted');
   } catch (err) {
-    next(err)
+    next(err);
   }
 }

@@ -5,9 +5,13 @@ import * as schema from './schema.js';
 
 config();
 
+// Configure SSL for Neon and other hosted Postgres providers.
+// Neon requires TLS; in local development we disable certificate
+// verification to avoid issues with managed certificates.
+const isNeon = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('neon');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: isNeon ? { rejectUnauthorized: false } : (process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false),
 });
 
 export const db = drizzle(pool, { schema });

@@ -2,7 +2,8 @@ import express from 'express'
 import dotenv from 'dotenv'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
-import { nodeHandler } from './auth.mjs'
+import path from 'path'
+import { pathToFileURL } from 'url'
 import departmentRoutes from './src/routes/departmentRoutes.js'
 import courseRoutes from './src/routes/courseRoutes.js'
 import resourceRoutes from './src/routes/resourceRoutes.js'
@@ -22,8 +23,34 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 
-// Mount Better Auth handler
-app.use('/api/auth', nodeHandler)
+// Mount Better Auth handler (dynamic import so we can expose get-session)
+async function mountAuthHandler() {
+  try {
+    const authModuleUrl = pathToFileURL(path.join(__dirname, './auth.mjs')).href
+    const mod = await import(authModuleUrl)
+
+    app.get('/api/auth/get-session', async (req, res) => {
+      try {
+        const session = await mod.auth.api.getSession({
+          headers: new Headers(req.headers),
+        })
+        res.json(session || null)
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to get session' })
+      }
+    })
+
+    if (mod?.nodeHandler) {
+      app.use('/api/auth', mod.nodeHandler)
+      console.log('Mounted Better Auth handler at /api/auth')
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to mount auth handler', err)
+  }
+}
+
+mountAuthHandler()
 
 app.use('/api/departments', departmentRoutes)
 app.use('/api/courses', courseRoutes)
