@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../features/auth/authSlice'
+import Logo from './Logo'
 
 export default function Navbar() {
   const user = useSelector((s) => s.auth.user)
@@ -15,14 +16,7 @@ export default function Navbar() {
   return (
     <nav className="bg-white/85 backdrop-blur-md border-b border-orange-100 sticky top-0 z-30 shadow-sm">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 text-white text-sm font-extrabold shadow-md shadow-orange-400/40">
-            L
-          </span>
-          <span className="font-extrabold text-lg text-slate-800 tracking-tight group-hover:text-orange-600 transition-colors">
-            LMS Learn
-          </span>
-        </Link>
+        <Logo variant="student" size="md" />
         <div className="flex items-center gap-4 text-sm font-bold">
           {!user && (
             <>

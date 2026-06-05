@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import axios from '../api/axiosInstance'
 import { unwrap } from '../api/unwrap'
 import { signupStudent } from '../features/auth/authSlice'
+import Logo from '../components/Logo'
 
 const YEAR_OPTIONS = [
   { label: '1st Year', value: 1 },
@@ -53,9 +54,9 @@ export default function SignupPage() {
     <div className="auth-shell">
       <div className="auth-card card max-w-lg">
         <div className="text-center mb-6">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-white text-xl font-extrabold shadow-lg shadow-orange-400/40 mb-4">
-            L
-          </span>
+          <div className="mb-4 flex justify-center">
+            <Logo variant="student" size="lg" asLink={false} />
+          </div>
           <h2 className="text-2xl font-extrabold text-slate-800">Student Sign Up</h2>
           <p className="text-slate-500 text-sm mt-1 font-semibold">Join your department and year to access courses</p>
         </div>

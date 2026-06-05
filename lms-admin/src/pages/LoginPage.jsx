@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { login } from '../features/auth/authSlice'
 import { Link, useNavigate } from 'react-router-dom'
+import Logo from '../components/Logo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -24,9 +25,9 @@ export default function LoginPage() {
     <div className="auth-shell">
       <div className="auth-card card">
         <div className="text-center mb-8">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-xl font-bold shadow-lg shadow-indigo-500/30 mb-4">
-            A
-          </span>
+          <div className="mb-4 flex justify-center">
+            <Logo variant="admin" size="lg" asLink={false} />
+          </div>
           <h2 className="text-2xl font-bold text-slate-800">Admin Login</h2>
           <p className="text-slate-500 text-sm mt-1">Sign in to manage departments and courses</p>
         </div>
