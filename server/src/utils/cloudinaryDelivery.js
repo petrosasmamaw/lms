@@ -14,9 +14,6 @@ export function getCloudinaryUploadOptions(mimetype = '', filename = '', type = 
     type === 'pdf' ||
     mimetype === 'application/pdf' ||
     lower.endsWith('.pdf');
-  const isDoc =
-    type === 'doc' ||
-    /\.(doc|docx)$/i.test(lower);
 
   const base = {
     folder: 'lms_resources',
@@ -28,42 +25,42 @@ export function getCloudinaryUploadOptions(mimetype = '', filename = '', type = 
   if (isVideo) {
     return { ...base, resource_type: 'video' };
   }
-  if (isPdf || isDoc) {
-    return { ...base, resource_type: 'raw' };
+  if (isPdf) {
+    // PDFs as raw type with inline display flag
+    return { ...base, resource_type: 'raw', flags: 'attachment:false' };
   }
-  return { ...base, resource_type: 'raw' };
+  // Docs as raw type
+  return { ...base, resource_type: 'raw', flags: 'attachment:false' };
 }
 
-function inferStoredResourceType(resource) {
-  const { type, url } = resource;
-  if (url?.includes('/video/upload/')) return 'video';
-  if (url?.includes('/raw/upload/')) return 'raw';
-  if (url?.includes('/image/upload/')) return 'image';
-  if (type === 'video') return 'video';
-  if (type === 'pdf' || type === 'doc') return 'raw';
-  return 'raw';
-}
-
-/** Build a browser-friendly URL (fixes legacy image-stored PDFs when possible). */
+/** Build a browser-friendly URL for viewing in iframe/browser */
 export function getResourceDeliveryUrl(resource) {
   const { url, publicId, type } = resource;
-  if (!url) return url;
-
-  if (!publicId) return url;
-
-  const resourceType = inferStoredResourceType(resource);
+  if (!url || !publicId) return url;
 
   try {
-    const options = {
-      resource_type: resourceType,
-      type: 'upload',
-      secure: true,
-    };
-    if (type === 'pdf' && resourceType === 'image') {
-      options.format = 'pdf';
+    if (type === 'video') {
+      // Videos - use secure URL directly
+      return cloudinary.url(publicId, {
+        resource_type: 'video',
+        type: 'upload',
+        secure: true,
+      });
     }
-    return cloudinary.url(publicId, options);
-  } catch {
+
+    if (type === 'pdf' || type === 'doc') {
+      // PDFs and Docs - use raw type with inline flag
+      return cloudinary.url(publicId, {
+        resource_type: 'raw',
+        type: 'upload',
+        secure: true,
+        flags: 'attachment:false',
+      });
+    }
+
+    return url;
+  } catch (err) {
+    console.error('Error generating delivery URL:', err);
     return url;
   }
 }

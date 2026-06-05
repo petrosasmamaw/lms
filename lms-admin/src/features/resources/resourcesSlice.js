@@ -29,17 +29,36 @@ export const uploadResource = createAsyncThunk('resources/upload', async ({ cour
   }
 })
 
+export const deleteResource = createAsyncThunk('resources/delete', async (resourceId, { rejectWithValue }) => {
+  try {
+    await axios.delete(`/resources/${resourceId}`)
+    return resourceId
+  } catch (err) {
+    return rejectWithValue(err.response?.data || err.message)
+  }
+})
+
 const slice = createSlice({
   name: 'resources',
   initialState: { list: [], loading: false, error: null, message: null },
-  reducers: {},
+  reducers: {
+    clearMessage: (s) => { s.message = null },
+    clearError: (s) => { s.error = null },
+  },
   extraReducers: (b) => {
     b
       .addCase(fetchResources.pending, (s) => { s.loading = true; s.error = null })
       .addCase(fetchResources.fulfilled, (s, a) => { s.loading = false; s.list = a.payload })
       .addCase(fetchResources.rejected, (s, a) => { s.loading = false; s.error = a.payload })
-      .addCase(uploadResource.fulfilled, (s, a) => { s.list.unshift(a.payload); s.message = 'Resource uploaded' })
+      .addCase(uploadResource.pending, (s) => { s.loading = true; s.error = null; s.message = null })
+      .addCase(uploadResource.fulfilled, (s, a) => { s.loading = false; s.list.unshift(a.payload); s.message = 'Resource uploaded successfully'; s.error = null })
+      .addCase(uploadResource.rejected, (s, a) => { s.loading = false; s.error = a.payload?.message || a.payload || 'Upload failed'; s.message = null })
+      .addCase(deleteResource.pending, (s) => { s.loading = true; s.error = null })
+      .addCase(deleteResource.fulfilled, (s, a) => { s.loading = false; s.list = s.list.filter(r => r.id !== a.payload); s.message = 'Resource deleted successfully' })
+      .addCase(deleteResource.rejected, (s, a) => { s.loading = false; s.error = a.payload })
   },
 })
+
+export const { clearMessage, clearError } = slice.actions
 
 export default slice.reducer

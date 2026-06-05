@@ -14,6 +14,7 @@ export default function DepartmentYearPage() {
   const { list: departments } = useSelector((s) => s.departments)
   const [tab, setTab] = useState('courses')
   const [name, setName] = useState('')
+  const [creatingCourse, setCreatingCourse] = useState(false)
   const [students, setStudents] = useState([])
   const [loadingStudents, setLoadingStudents] = useState(false)
 
@@ -37,9 +38,14 @@ export default function DepartmentYearPage() {
 
   const handleCreateCourse = async (e) => {
     e.preventDefault()
-    await dispatch(createCourse({ name, departmentId: Number(departmentId), year: Number(year) }))
-    setName('')
-    dispatch(fetchCourses({ departmentId, year }))
+    setCreatingCourse(true)
+    try {
+      await dispatch(createCourse({ name, departmentId: Number(departmentId), year: Number(year) }))
+      setName('')
+      dispatch(fetchCourses({ departmentId, year }))
+    } finally {
+      setCreatingCourse(false)
+    }
   }
 
   return (
@@ -94,7 +100,9 @@ export default function DepartmentYearPage() {
         <div>
           <form onSubmit={handleCreateCourse} className="card p-4 flex flex-wrap gap-2 mb-8">
             <input className="input max-w-sm flex-1 min-w-[10rem]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Course name" required />
-            <button type="submit" className="btn-primary">Add Course</button>
+            <button type="submit" className="btn-primary" disabled={creatingCourse || !name}>
+              {creatingCourse ? 'Adding...' : 'Add Course'}
+            </button>
           </form>
           {loading && (
             <div className="flex items-center gap-2 text-slate-500 mb-4">

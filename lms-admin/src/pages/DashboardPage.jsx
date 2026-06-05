@@ -10,6 +10,7 @@ export default function DashboardPage() {
   const dispatch = useDispatch()
   const { list: departments, loading } = useSelector((s) => s.departments)
   const [name, setName] = useState('')
+  const [creating, setCreating] = useState(false)
   const [courseRows, setCourseRows] = useState([])
 
   useEffect(() => {
@@ -42,9 +43,14 @@ export default function DashboardPage() {
 
   const handleCreate = async (e) => {
     e.preventDefault()
-    await dispatch(createDepartment({ name }))
-    setName('')
-    dispatch(fetchDepartments())
+    setCreating(true)
+    try {
+      await dispatch(createDepartment({ name }))
+      setName('')
+      dispatch(fetchDepartments())
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (
@@ -57,7 +63,9 @@ export default function DashboardPage() {
         </div>
         <form onSubmit={handleCreate} className="card p-4 flex flex-wrap gap-2 items-center">
           <input className="input max-w-xs min-w-[12rem]" placeholder="New department name" value={name} onChange={(e) => setName(e.target.value)} required />
-          <button type="submit" className="btn-primary whitespace-nowrap">Add Department</button>
+          <button type="submit" className="btn-primary whitespace-nowrap" disabled={creating || !name}>
+            {creating ? 'Adding...' : 'Add Department'}
+          </button>
         </form>
       </div>
 

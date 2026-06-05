@@ -12,6 +12,8 @@ export default function ExamPage() {
   const [qText, setQText] = useState('')
   const [choices, setChoices] = useState(['', '', '', ''])
   const [correct, setCorrect] = useState(0)
+  const [createLoading, setCreateLoading] = useState(false)
+  const [addingQuestionFor, setAddingQuestionFor] = useState(null)
 
   useEffect(() => {
     dispatch(fetchExams(courseId))
@@ -19,9 +21,14 @@ export default function ExamPage() {
 
   const handleCreate = async (e) => {
     e.preventDefault()
-    await dispatch(createExam({ courseId: Number(courseId), title }))
-    setTitle('')
-    dispatch(fetchExams(courseId))
+    setCreateLoading(true)
+    try {
+      await dispatch(createExam({ courseId: Number(courseId), title }))
+      setTitle('')
+      dispatch(fetchExams(courseId))
+    } finally {
+      setCreateLoading(false)
+    }
   }
 
   const open = async (exam) => {
@@ -30,14 +37,16 @@ export default function ExamPage() {
   }
 
   const handleAddQuestion = async (examId) => {
-    await dispatch(addQuestion({
-      examId,
-      question: { text: qText, choices, correct },
-    }))
-    setQText('')
-    setChoices(['', '', '', ''])
-    setCorrect(0)
-    await dispatch(fetchQuestions(examId))
+    setAddingQuestionFor(examId)
+    try {
+      await dispatch(addQuestion({ examId, question: { text: qText, choices, correct } }))
+      setQText('')
+      setChoices(['', '', '', ''])
+      setCorrect(0)
+      await dispatch(fetchQuestions(examId))
+    } finally {
+      setAddingQuestionFor(null)
+    }
   }
 
   return (
@@ -50,7 +59,9 @@ export default function ExamPage() {
 
       <form onSubmit={handleCreate} className="card p-4 flex flex-wrap gap-2 mb-8">
         <input className="input max-w-sm flex-1 min-w-[10rem]" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Exam title" required />
-        <button type="submit" className="btn-primary whitespace-nowrap">Create New Exam</button>
+        <button type="submit" className="btn-primary whitespace-nowrap" disabled={createLoading || !title}>
+          {createLoading ? 'Creating...' : 'Create New Exam'}
+        </button>
       </form>
 
       <div className="space-y-4">
@@ -92,8 +103,8 @@ export default function ExamPage() {
                       <input className="input" value={c} onChange={(e) => { const next = [...choices]; next[idx] = e.target.value; setChoices(next) }} placeholder={`Choice ${idx + 1}`} />
                     </div>
                   ))}
-                  <button type="button" onClick={() => handleAddQuestion(ex.id)} className="btn-primary mt-3">
-                    Add Question
+                  <button type="button" onClick={() => handleAddQuestion(ex.id)} className="btn-primary mt-3" disabled={addingQuestionFor === ex.id}>
+                    {addingQuestionFor === ex.id ? 'Adding...' : 'Add Question'}
                   </button>
                 </div>
               </div>
