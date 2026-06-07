@@ -55,12 +55,6 @@ export default function ResourcesPage() {
     }
   }
 
-  const handleOpenResource = (resource) => {
-    if (resource?.url) {
-      window.open(resource.url, '_blank', 'noopener,noreferrer')
-    }
-  }
-
   return (
     <div className="page-shell">
       <Link to={`/courses/${courseId}`} className="link-back">← Course</Link>
@@ -117,12 +111,14 @@ export default function ResourcesPage() {
             </span>
             <div className="flex gap-2 mt-4">
               {r.url && (
-                <button
-                  onClick={() => handleOpenResource(r)}
-                  className="text-indigo-600 text-sm font-semibold hover:underline flex-1 text-left"
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 text-sm font-semibold hover:underline flex-1"
                 >
                   Open →
-                </button>
+                </a>
               )}
               <button
                 onClick={() => handleDelete(r.id)}

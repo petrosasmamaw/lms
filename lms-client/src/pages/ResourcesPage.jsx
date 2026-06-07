@@ -49,16 +49,15 @@ export default function ResourcesPage() {
               <TypeBadge type={r.type} />
             </div>
 
-            {(r.type === 'pdf' || r.type === 'doc') && r.url && (
-              <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-orange-600 font-extrabold text-sm hover:underline">
-                Open in new tab →
+            {r.url && (
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-orange-600 font-extrabold text-sm hover:underline"
+              >
+                Open →
               </a>
-            )}
-
-            {r.type === 'video' && r.url && (
-              <video controls className="w-full rounded-xl mt-3 max-h-80 bg-slate-900 shadow-inner" src={r.url}>
-                Your browser does not support video playback.
-              </video>
             )}
           </div>
         ))}
