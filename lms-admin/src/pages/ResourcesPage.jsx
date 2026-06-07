@@ -11,36 +11,6 @@ function detectResourceType(filename = '') {
   return 'pdf'
 }
 
-function getViewerConfig(resource) {
-  if (!resource?.url) return null
-
-  if (resource.type === 'pdf') {
-    return {
-      mode: 'iframe',
-      src: `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(resource.url)}`,
-      hint: 'If the PDF does not appear, use Open in new tab.',
-    }
-  }
-
-  if (resource.type === 'video') {
-    return {
-      mode: 'video',
-      src: resource.url,
-      hint: 'Video playback uses the uploaded file directly.',
-    }
-  }
-
-  if (resource.type === 'doc') {
-    return {
-      mode: 'iframe',
-      src: `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(resource.url)}`,
-      hint: 'Document preview is provided by Microsoft Office Online.',
-    }
-  }
-
-  return null
-}
-
 export default function ResourcesPage() {
   const { courseId } = useParams()
   const dispatch = useDispatch()
@@ -48,7 +18,6 @@ export default function ResourcesPage() {
   const [title, setTitle] = useState('')
   const [type, setType] = useState('pdf')
   const [file, setFile] = useState(null)
-  const [viewerModal, setViewerModal] = useState(null)
 
   useEffect(() => {
     dispatch(fetchResources(courseId))
@@ -87,10 +56,10 @@ export default function ResourcesPage() {
   }
 
   const handleOpenResource = (resource) => {
-    setViewerModal(resource)
+    if (resource?.url) {
+      window.open(resource.url, '_blank', 'noopener,noreferrer')
+    }
   }
-
-  const viewerConfig = viewerModal ? getViewerConfig(viewerModal) : null
 
   return (
     <div className="page-shell">
@@ -169,75 +138,6 @@ export default function ResourcesPage() {
           <p className="text-slate-400 col-span-full py-8 text-center">No resources uploaded yet.</p>
         )}
       </div>
-
-      {viewerModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] flex flex-col min-h-0">
-            <div className="flex justify-between items-center p-4 border-b bg-slate-50 shrink-0">
-              <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-semibold text-slate-800 truncate">{viewerModal.title}</h2>
-                <p className="text-xs text-slate-500 mt-1 uppercase">{viewerModal.type}</p>
-              </div>
-              <button
-                onClick={() => setViewerModal(null)}
-                className="ml-4 text-slate-500 hover:text-slate-700 text-2xl font-light hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-hidden p-4 bg-gray-50">
-              {viewerConfig?.mode === 'iframe' && (
-                <iframe
-                  key={`${viewerModal.id}-${viewerModal.url}`}
-                  src={viewerConfig.src}
-                  title={viewerModal.title}
-                  className="w-full h-full min-h-[500px] rounded border border-slate-200 bg-white"
-                  allow="fullscreen"
-                />
-              )}
-
-              {viewerConfig?.mode === 'video' && (
-                <video
-                  key={`${viewerModal.id}-${viewerModal.url}`}
-                  controls
-                  className="w-full max-h-full rounded bg-black"
-                  src={viewerConfig.src}
-                >
-                  Your browser does not support video playback.
-                </video>
-              )}
-
-              {!viewerConfig && (
-                <div className="h-full min-h-[300px] flex items-center justify-center text-slate-500">
-                  <p>Unable to preview this file.</p>
-                </div>
-              )}
-
-              {viewerConfig?.hint && (
-                <p className="text-xs text-slate-500 mt-3">{viewerConfig.hint}</p>
-              )}
-            </div>
-
-            <div className="flex gap-2 p-4 border-t bg-slate-50 justify-end shrink-0">
-              <a
-                href={viewerModal.url}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-secondary"
-              >
-                {viewerModal.type === 'doc' ? 'Download file' : 'Open in new tab'}
-              </a>
-              <button
-                onClick={() => setViewerModal(null)}
-                className="btn-primary"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

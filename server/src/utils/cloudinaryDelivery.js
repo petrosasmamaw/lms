@@ -1,4 +1,5 @@
 import path from 'path';
+import cloudinary from '../config/cloudinary.js';
 
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.mp4', '.mov', '.webm']);
 
@@ -17,10 +18,18 @@ export function isAllowedResourceFile(filename = '') {
   return ALLOWED_EXTENSIONS.has(ext);
 }
 
+export function parseCloudinaryMeta(url = '') {
+  const versionMatch = url.match(/\/upload\/(v\d+)\//);
+  const version = versionMatch ? versionMatch[1].slice(1) : undefined;
+  let resourceType = 'raw';
+  if (url.includes('/video/upload/')) resourceType = 'video';
+  else if (url.includes('/image/upload/')) resourceType = 'image';
+  return { version, resourceType };
+}
+
 /**
  * Upload options per file type.
- * Always keep the file extension in public_id for raw files (PDF/DOCX) so
- * Cloudinary serves the correct content-type and browsers can open them.
+ * PDFs use image resource_type so Cloudinary serves them publicly in browsers.
  */
 export function getCloudinaryUploadOptions(mimetype = '', filename = '', type = 'doc') {
   const lower = (filename || '').toLowerCase();
@@ -38,6 +47,7 @@ export function getCloudinaryUploadOptions(mimetype = '', filename = '', type = 
     folder: 'lms_resources',
     unique_filename: true,
     access_mode: 'public',
+    type: 'upload',
   };
 
   if (isVideo) {
@@ -51,8 +61,9 @@ export function getCloudinaryUploadOptions(mimetype = '', filename = '', type = 
   if (isPdf) {
     return {
       ...baseOptions,
-      resource_type: 'raw',
-      public_id: `${base}.pdf`,
+      resource_type: 'image',
+      format: 'pdf',
+      public_id: base,
     };
   }
 
@@ -63,13 +74,32 @@ export function getCloudinaryUploadOptions(mimetype = '', filename = '', type = 
   };
 }
 
-/**
- * Return the stored Cloudinary secure_url as-is.
- * Regenerating URLs via cloudinary.url() produces wrong version (v1) and
- * transformation flags that cause 404/401 errors on delivery.
- */
+function buildSignedPdfUrl(resource) {
+  const { url, publicId } = resource;
+  const { resourceType } = parseCloudinaryMeta(url);
+
+  return cloudinary.utils.private_download_url(publicId, 'pdf', {
+    resource_type: resourceType,
+    type: 'upload',
+    expires_at: Math.floor(Date.now() / 1000) + 7200,
+  });
+}
+
+/** Build a browser-friendly URL. PDFs need signed URLs on this Cloudinary account. */
 export function getResourceDeliveryUrl(resource) {
-  return resource?.url || '';
+  const { url, publicId, type } = resource;
+  if (!url || !publicId) return url || '';
+
+  if (type === 'pdf') {
+    try {
+      return buildSignedPdfUrl(resource);
+    } catch (err) {
+      console.error('Error generating signed PDF URL:', err);
+      return url;
+    }
+  }
+
+  return url;
 }
 
 export function mapResourcesWithDeliveryUrls(resources) {
