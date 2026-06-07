@@ -3,6 +3,44 @@ import { useParams, Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchResources, uploadResource, deleteResource } from '../features/resources/resourcesSlice'
 
+function detectResourceType(filename = '') {
+  const name = filename.toLowerCase()
+  if (name.endsWith('.pdf')) return 'pdf'
+  if (name.endsWith('.doc') || name.endsWith('.docx')) return 'doc'
+  if (name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.webm')) return 'video'
+  return 'pdf'
+}
+
+function getViewerConfig(resource) {
+  if (!resource?.url) return null
+
+  if (resource.type === 'pdf') {
+    return {
+      mode: 'iframe',
+      src: resource.url,
+      hint: 'If the PDF does not appear, use Open in new tab.',
+    }
+  }
+
+  if (resource.type === 'video') {
+    return {
+      mode: 'video',
+      src: resource.url,
+      hint: 'Video playback uses the uploaded file directly.',
+    }
+  }
+
+  if (resource.type === 'doc') {
+    return {
+      mode: 'iframe',
+      src: `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(resource.url)}`,
+      hint: 'Document preview is provided by Microsoft Office Online.',
+    }
+  }
+
+  return null
+}
+
 export default function ResourcesPage() {
   const { courseId } = useParams()
   const dispatch = useDispatch()
@@ -20,11 +58,7 @@ export default function ResourcesPage() {
     const selectedFile = e.target.files?.[0]
     if (selectedFile) {
       setFile(selectedFile)
-      // Auto-detect type from file
-      const name = selectedFile.name.toLowerCase()
-      if (name.endsWith('.pdf')) setType('pdf')
-      else if (name.endsWith('.doc') || name.endsWith('.docx')) setType('doc')
-      else if (name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.webm')) setType('video')
+      setType(detectResourceType(selectedFile.name))
     }
   }
 
@@ -34,14 +68,14 @@ export default function ResourcesPage() {
       alert('Please fill in title and select a file')
       return
     }
-    
-    console.log(`Uploading: ${file.name}, Type: ${type}, Title: ${title}`)
-    const result = await dispatch(uploadResource({ courseId, title, type, file }))
-    console.log('Upload result:', result)
-    
+
+    const uploadType = detectResourceType(file.name)
+    const result = await dispatch(uploadResource({ courseId, title, type: uploadType, file }))
+
     if (result.payload) {
       setTitle('')
       setFile(null)
+      setType('pdf')
       dispatch(fetchResources(courseId))
     }
   }
@@ -53,13 +87,10 @@ export default function ResourcesPage() {
   }
 
   const handleOpenResource = (resource) => {
-    console.log('Opening resource:', resource)
-    if (resource.type === 'doc') {
-      window.open(resource.url, '_blank')
-    } else {
-      setViewerModal(resource)
-    }
+    setViewerModal(resource)
   }
+
+  const viewerConfig = viewerModal ? getViewerConfig(viewerModal) : null
 
   return (
     <div className="page-shell">
@@ -71,17 +102,17 @@ export default function ResourcesPage() {
 
       <form onSubmit={handleUpload} className="card p-6 space-y-4 mb-10 max-w-lg">
         <h2 className="font-semibold text-slate-800">Upload new resource</h2>
-        <input 
-          className="input" 
-          value={title} 
-          onChange={(e) => setTitle(e.target.value)} 
-          placeholder="Resource title" 
-          required 
+        <input
+          className="input"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Resource title"
+          required
         />
         <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
           <option value="pdf">PDF</option>
           <option value="doc">Document (DOC/DOCX)</option>
-          <option value="video">Video (MP4/MOV)</option>
+          <option value="video">Video (MP4/MOV/WEBM)</option>
         </select>
         <div>
           <input
@@ -91,13 +122,21 @@ export default function ResourcesPage() {
             accept=".pdf,.doc,.docx,.mp4,.mov,.webm"
             required
           />
-          {file && <p className="text-xs text-slate-500 mt-1">Selected: {file.name}</p>}
+          {file && (
+            <p className="text-xs text-slate-500 mt-1">
+              Selected: {file.name} ({type.toUpperCase()})
+            </p>
+          )}
         </div>
         <button type="submit" className="btn-primary w-full" disabled={loading}>
           {loading ? 'Uploading...' : 'Upload'}
         </button>
         {message && <p className="text-green-600 text-sm font-semibold bg-green-50 p-3 rounded">{message}</p>}
-        {error && <p className="text-red-600 text-sm font-semibold bg-red-50 p-3 rounded">{typeof error === 'string' ? error : 'Upload failed'}</p>}
+        {error && (
+          <p className="text-red-600 text-sm font-semibold bg-red-50 p-3 rounded">
+            {typeof error === 'string' ? error : error?.message || 'Upload failed'}
+          </p>
+        )}
       </form>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -113,7 +152,7 @@ export default function ResourcesPage() {
                   onClick={() => handleOpenResource(r)}
                   className="text-indigo-600 text-sm font-semibold hover:underline flex-1 text-left"
                 >
-                  {r.type === 'doc' ? 'Download' : 'Open'} →
+                  Open →
                 </button>
               )}
               <button
@@ -131,14 +170,13 @@ export default function ResourcesPage() {
         )}
       </div>
 
-      {/* Resource Viewer Modal */}
       {viewerModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b bg-slate-50">
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold text-slate-800">{viewerModal.title}</h2>
-                <p className="text-xs text-slate-500 mt-1">{viewerModal.type.toUpperCase()} • {viewerModal.url}</p>
+          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] flex flex-col min-h-0">
+            <div className="flex justify-between items-center p-4 border-b bg-slate-50 shrink-0">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-semibold text-slate-800 truncate">{viewerModal.title}</h2>
+                <p className="text-xs text-slate-500 mt-1 uppercase">{viewerModal.type}</p>
               </div>
               <button
                 onClick={() => setViewerModal(null)}
@@ -147,49 +185,49 @@ export default function ResourcesPage() {
                 ✕
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-4 bg-gray-50 flex items-center justify-center">
-              {viewerModal.type === 'pdf' ? (
+
+            <div className="flex-1 min-h-0 overflow-hidden p-4 bg-gray-50">
+              {viewerConfig?.mode === 'iframe' && (
                 <iframe
-                  key={viewerModal.id}
-                  src={`${viewerModal.url}#view=FitH&toolbar=1`}
+                  key={`${viewerModal.id}-${viewerModal.url}`}
+                  src={viewerConfig.src}
                   title={viewerModal.title}
-                  className="w-full h-full rounded border border-slate-200"
-                  style={{ minHeight: '500px' }}
+                  className="w-full h-full min-h-[500px] rounded border border-slate-200 bg-white"
                   allow="fullscreen"
-                  onError={(e) => console.error('iFrame error:', e)}
                 />
-              ) : viewerModal.type === 'video' ? (
+              )}
+
+              {viewerConfig?.mode === 'video' && (
                 <video
-                  key={viewerModal.id}
+                  key={`${viewerModal.id}-${viewerModal.url}`}
                   controls
-                  className="max-w-full max-h-full rounded bg-black"
-                  style={{ maxHeight: '600px' }}
-                  onError={(e) => console.error('Video error:', e)}
+                  className="w-full max-h-full rounded bg-black"
+                  src={viewerConfig.src}
                 >
-                  <source src={viewerModal.url} type="video/mp4" />
-                  <source src={viewerModal.url} type="video/quicktime" />
-                  Your browser doesn't support video playback.
+                  Your browser does not support video playback.
                 </video>
-              ) : (
-                <div className="text-center text-slate-500">
-                  <p>Unable to preview this file type</p>
+              )}
+
+              {!viewerConfig && (
+                <div className="h-full min-h-[300px] flex items-center justify-center text-slate-500">
+                  <p>Unable to preview this file.</p>
                 </div>
               )}
+
+              {viewerConfig?.hint && (
+                <p className="text-xs text-slate-500 mt-3">{viewerConfig.hint}</p>
+              )}
             </div>
-            <div className="flex gap-2 p-4 border-t bg-slate-50 justify-end">
+
+            <div className="flex gap-2 p-4 border-t bg-slate-50 justify-end shrink-0">
               <a
                 href={viewerModal.url}
-                download={viewerModal.title}
+                target="_blank"
+                rel="noreferrer"
                 className="btn-secondary"
               >
-                Download
+                {viewerModal.type === 'doc' ? 'Download file' : 'Open in new tab'}
               </a>
-              <button
-                onClick={() => window.open(viewerModal.url, '_blank')}
-                className="btn-secondary"
-              >
-                Open in new tab
-              </button>
               <button
                 onClick={() => setViewerModal(null)}
                 className="btn-primary"

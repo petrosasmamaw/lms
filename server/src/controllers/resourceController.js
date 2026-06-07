@@ -8,9 +8,22 @@ import {
 import fs from 'fs/promises';
 
 function mapResourceType(mimetype = '', filename = '') {
-  if (mimetype.includes('pdf') || filename.endsWith('.pdf')) return 'pdf';
-  if (mimetype.includes('video') || /\.(mp4|mov|webm)$/i.test(filename)) return 'video';
+  const lower = filename.toLowerCase();
+  if (mimetype.includes('pdf') || lower.endsWith('.pdf')) return 'pdf';
+  if (mimetype.startsWith('video/') || /\.(mp4|mov|webm)$/i.test(lower)) return 'video';
+  if (
+    mimetype.includes('word') ||
+    mimetype === 'application/msword' ||
+    /\.(doc|docx)$/i.test(lower)
+  ) {
+    return 'doc';
+  }
   return 'doc';
+}
+
+async function cleanupTempFile(filePath) {
+  if (!filePath) return;
+  await fs.unlink(filePath).catch(() => {});
 }
 
 export async function uploadResource(req, res, next) {
@@ -20,20 +33,15 @@ export async function uploadResource(req, res, next) {
     const courseId = req.body.courseId || req.body.course_id;
     if (!courseId) return error(res, 'courseId is required', 400);
 
-    const type = req.body.type || mapResourceType(req.file.mimetype, req.file.originalname);
-    console.log(`[Upload] File: ${req.file.originalname}, Type: ${type}, Mimetype: ${req.file.mimetype}`);
-    
+    const type = mapResourceType(req.file.mimetype, req.file.originalname);
     const uploadOptions = getCloudinaryUploadOptions(
       req.file.mimetype,
       req.file.originalname,
       type,
     );
-    console.log(`[Upload] Cloudinary options:`, uploadOptions);
 
     const result = await cloudinary.uploader.upload(req.file.path, uploadOptions);
-    console.log(`[Upload] Cloudinary response - URL: ${result.secure_url}, PublicId: ${result.public_id}`);
-
-    await fs.unlink(req.file.path).catch(() => {});
+    await cleanupTempFile(req.file.path);
 
     const resource = await resourceService.createResource({
       courseId: Number(courseId),
@@ -44,10 +52,9 @@ export async function uploadResource(req, res, next) {
     });
 
     const [withUrl] = mapResourcesWithDeliveryUrls([resource]);
-    console.log(`[Upload] Final resource URL:`, withUrl.url);
     return success(res, { resource: withUrl }, 'Resource uploaded', 201);
   } catch (err) {
-    console.error('[Upload] Error:', err);
+    await cleanupTempFile(req.file?.path);
     next(err);
   }
 }
