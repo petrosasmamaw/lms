@@ -17,7 +17,7 @@ function getViewerConfig(resource) {
   if (resource.type === 'pdf') {
     return {
       mode: 'iframe',
-      src: resource.url,
+      src: `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(resource.url)}`,
       hint: 'If the PDF does not appear, use Open in new tab.',
     }
   }
