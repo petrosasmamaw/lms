@@ -85,7 +85,12 @@ function buildSignedPdfUrl(resource) {
   });
 }
 
-/** Build a browser-friendly URL. PDFs need signed URLs on this Cloudinary account. */
+/** DOC/DOCX cannot render in the browser directly — use Office Online viewer page. */
+function buildDocOpenUrl(fileUrl) {
+  return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(fileUrl)}`;
+}
+
+/** Build a browser-friendly URL for opening (not downloading) resources. */
 export function getResourceDeliveryUrl(resource) {
   const { url, publicId, type } = resource;
   if (!url || !publicId) return url || '';
@@ -97,6 +102,10 @@ export function getResourceDeliveryUrl(resource) {
       console.error('Error generating signed PDF URL:', err);
       return url;
     }
+  }
+
+  if (type === 'doc') {
+    return buildDocOpenUrl(url);
   }
 
   return url;
