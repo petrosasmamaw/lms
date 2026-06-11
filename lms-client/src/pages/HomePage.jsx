@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { BookOpen } from 'lucide-react'
 import { fetchStudentCourses } from '../features/courses/coursesSlice'
 import CourseCard from '../components/CourseCard'
+import EmptyState from '../components/ui/EmptyState'
 
 export default function HomePage() {
   const dispatch = useDispatch()
@@ -20,35 +22,32 @@ export default function HomePage() {
   return (
     <div>
       <header className="page-hero">
-        <p className="text-xs font-extrabold uppercase tracking-wider text-orange-600 mb-1">Your learning</p>
-        <h1>Welcome, {user?.name || 'Student'} 👋</h1>
+        <p className="eyebrow">Your learning</p>
+        <h1>Welcome, {user?.name || 'Student'}</h1>
         <p>
-          Courses for your department · Year {user?.year}
+          Courses for your department · Year <span className="font-mono">{user?.year}</span>
         </p>
       </header>
 
       {loading && (
-        <div className="flex items-center gap-3 text-slate-500 py-8">
-          <span className="h-7 w-7 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <span className="font-bold">Loading your courses...</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => <div key={i} className="skeleton skeleton-card" />)}
         </div>
       )}
 
       {error && <p className="toast-error">{error.message || 'Failed to load courses'}</p>}
 
       {!loading && !courses.length && (
-        <div className="card p-10 text-center">
-          <span className="text-4xl" aria-hidden>📭</span>
-          <p className="text-slate-600 font-bold mt-4">No courses yet</p>
-          <p className="text-slate-500 text-sm mt-1 font-semibold">
-            Your admin hasn&apos;t added courses for your department and year.
-          </p>
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title="No courses yet"
+          description="Your admin hasn't added courses for your department and year."
+        />
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {courses.map((course, i) => (
-          <CourseCard key={course.id} course={course} index={i} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {courses.map((course) => (
+          <CourseCard key={course.id} course={course} />
         ))}
       </div>
     </div>

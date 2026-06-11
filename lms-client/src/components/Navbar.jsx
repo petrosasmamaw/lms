@@ -1,7 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
+import { BookOpen, LogOut } from 'lucide-react'
 import { logout } from '../features/auth/authSlice'
 import Logo from './Logo'
+import ThemeToggle from './ThemeToggle'
 
 export default function Navbar() {
   const user = useSelector((s) => s.auth.user)
@@ -14,31 +16,26 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white/85 backdrop-blur-md border-b border-orange-100 sticky top-0 z-30 shadow-sm">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+    <nav className="navbar">
+      <div className="container mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-4">
         <Logo variant="student" size="md" />
-        <div className="flex items-center gap-4 text-sm font-bold">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           {!user && (
             <>
-              <Link to="/signup" className="text-slate-600 hover:text-orange-600 transition-colors">
-                Sign Up
-              </Link>
-              <Link to="/login" className="btn-primary py-2 px-4 text-sm">
-                Log In
-              </Link>
+              <Link to="/signup" className="nav-link hidden sm:inline-flex">Sign up</Link>
+              <Link to="/login" className="btn-primary text-sm py-2 px-4">Log in</Link>
             </>
           )}
           {user && (
             <>
-              <Link to="/home" className="text-slate-600 hover:text-orange-600 transition-colors">
-                My Courses
+              <Link to="/home" className="nav-link hidden sm:inline-flex items-center gap-2">
+                <BookOpen size={16} strokeWidth={1.5} aria-hidden="true" />
+                My courses
               </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="text-red-500 hover:text-red-700 transition-colors"
-              >
-                Log Out
+              <button type="button" onClick={handleLogout} className="btn-ghost text-sm items-center gap-2">
+                <LogOut size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="hidden sm:inline">Log out</span>
               </button>
             </>
           )}

@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchDepartments, createDepartment } from '../features/departments/departmentsSlice'
 import { fetchCourses } from '../features/courses/coursesSlice'
 import DepartmentCard from '../components/DepartmentCard'
+import EmptyState from '../components/ui/EmptyState'
+import { Building2 } from 'lucide-react'
 
 const YEAR_LABELS = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }
 
@@ -57,39 +59,46 @@ export default function DashboardPage() {
     <div className="page-shell">
       <div className="flex flex-wrap items-end justify-between gap-6 mb-10">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600 mb-1">Administration</p>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Dashboard</h1>
-          <p className="text-slate-500 mt-1">Browse departments by academic year</p>
+          <p className="eyebrow">Administration</p>
+          <h1 className="page-title mt-1">Dashboard</h1>
+          <p className="page-subtitle">Browse departments by academic year</p>
         </div>
-        <form onSubmit={handleCreate} className="card p-4 flex flex-wrap gap-2 items-center">
+        <form onSubmit={handleCreate} className="card flex flex-wrap gap-3 items-center p-4">
           <input className="input max-w-xs min-w-[12rem]" placeholder="New department name" value={name} onChange={(e) => setName(e.target.value)} required />
           <button type="submit" className="btn-primary whitespace-nowrap" disabled={creating || !name}>
-            {creating ? 'Adding...' : 'Add Department'}
+            {creating ? 'Adding…' : 'Add department'}
           </button>
         </form>
       </div>
 
       {loading && (
-        <div className="flex items-center gap-3 text-slate-500 py-8">
-          <span className="h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <span className="font-medium">Loading departments...</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => <div key={i} className="skeleton skeleton-card" />)}
         </div>
+      )}
+
+      {!loading && grouped.every((g) => !g.items.length) && (
+        <EmptyState
+          icon={Building2}
+          title="No departments yet"
+          description="Create your first department to start organizing courses and students."
+        />
       )}
 
       {grouped.map((g) => (
         <section key={g.year} className="mb-12">
-          <h2 className="section-heading flex items-center gap-2">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 text-sm font-bold">
-              {g.year}
-            </span>
-            {YEAR_LABELS[g.year]} Year
+          <h2 className="section-heading">
+            <span className="badge badge-accent font-mono">{g.year}</span>
+            {YEAR_LABELS[g.year]} year
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {g.items.map((item) => (
               <DepartmentCard key={`${item.departmentId}-${item.year}`} dept={item} />
             ))}
             {!g.items.length && (
-              <p className="text-slate-400 text-sm col-span-full py-4">No departments for this year yet.</p>
+              <p className="text-[var(--text-sm)] text-[var(--color-text-tertiary)] col-span-full py-4">
+                No departments for this year yet.
+              </p>
             )}
           </div>
         </section>

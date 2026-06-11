@@ -25,31 +25,29 @@ export default function LoginPage() {
     <div className="auth-shell">
       <div className="auth-card card">
         <div className="text-center mb-8">
-          <div className="mb-4 flex justify-center">
+          <div className="mb-6 flex justify-center">
             <Logo variant="admin" size="lg" asLink={false} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800">Admin Login</h2>
-          <p className="text-slate-500 text-sm mt-1">Sign in to manage departments and courses</p>
+          <h2 className="font-display text-[var(--text-2xl)] font-bold text-[var(--color-text-primary)]">Admin login</h2>
+          <p className="page-subtitle">Sign in to manage departments and courses</p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-1.5">Email</label>
-            <input className="input" placeholder="you@university.edu" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <label className="label" htmlFor="email">Email</label>
+            <input id="email" className="input" placeholder="you@university.edu" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-1.5">Password</label>
-            <input className="input" placeholder="••••••••" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <label className="label" htmlFor="password">Password</label>
+            <input id="password" className="input" placeholder="••••••••" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           <button type="submit" className="btn-primary w-full mt-2" disabled={loading}>
-            {loading ? 'Logging in...' : 'Log In'}
+            {loading ? 'Logging in…' : 'Log in'}
           </button>
           {error && <p className="toast-error">{error.message || 'Login failed'}</p>}
         </form>
-        <p className="mt-6 text-center text-sm text-slate-500">
+        <p className="mt-6 text-center text-[var(--text-sm)] text-[var(--color-text-secondary)]">
           Need an account?{' '}
-          <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-700">
-            Sign up
-          </Link>
+          <Link to="/signup" className="link-accent">Sign up</Link>
         </p>
       </div>
     </div>

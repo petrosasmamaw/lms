@@ -6,6 +6,8 @@ import { fetchDepartments } from '../features/departments/departmentsSlice'
 import axios from '../api/axiosInstance'
 import { unwrap } from '../api/unwrap'
 import CourseCard from '../components/CourseCard'
+import EmptyState from '../components/ui/EmptyState'
+import { Users, BookOpen } from 'lucide-react'
 
 export default function DepartmentYearPage() {
   const { departmentId, year } = useParams()
@@ -73,93 +75,89 @@ export default function DepartmentYearPage() {
   return (
     <div className="page-shell">
       <Link to="/dashboard" className="link-back">← Dashboard</Link>
-      <div className="mt-3 mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">Department</p>
-        <h1 className="text-2xl font-bold text-slate-800 mt-0.5">{deptName}</h1>
-        <p className="text-slate-500 text-sm mt-1">Year {year}</p>
+      <div className="mt-4 mb-8">
+        <p className="eyebrow">Department</p>
+        <h1 className="page-title mt-1">{deptName}</h1>
+        <p className="page-subtitle font-mono">Year {year}</p>
       </div>
 
       <div className="flex gap-2 mb-8">
-        <button
-          type="button"
-          onClick={() => setTab('students')}
-          className={`tab-btn ${tab === 'students' ? 'tab-btn-active' : 'tab-btn-inactive'}`}
-        >
+        <button type="button" onClick={() => setTab('students')} className={`tab-btn ${tab === 'students' ? 'tab-btn-active' : 'tab-btn-inactive'}`}>
           Students
         </button>
-        <button
-          type="button"
-          onClick={() => setTab('courses')}
-          className={`tab-btn ${tab === 'courses' ? 'tab-btn-active' : 'tab-btn-inactive'}`}
-        >
+        <button type="button" onClick={() => setTab('courses')} className={`tab-btn ${tab === 'courses' ? 'tab-btn-active' : 'tab-btn-inactive'}`}>
           Courses
         </button>
       </div>
 
       {tab === 'students' && (
-        <div className="card p-5">
+        <div className="card p-0 overflow-hidden">
           {loadingStudents && (
-            <div className="flex items-center gap-2 text-slate-500">
-              <span className="h-5 w-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-              Loading students...
+            <div className="loading-row px-6">
+              <span className="spinner" />
+              Loading students…
             </div>
           )}
           {!loadingStudents && !students.length && (
-            <p className="text-slate-500 py-4 text-center">No students in this department/year yet.</p>
+            <EmptyState
+              icon={Users}
+              title="No students yet"
+              description="Students who register for this department and year will appear here."
+            />
           )}
-          <ul className="divide-y divide-slate-100">
-            {students.map((s) => (
-              <li key={s.id} className="py-3.5 flex flex-wrap justify-between items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <span className="font-semibold text-slate-800 block">{s.name}</span>
-                  <span className="text-slate-500 text-sm truncate block">{s.email}</span>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span
-                    className={`text-xs font-semibold uppercase px-2.5 py-1 rounded-full border ${
-                      s.verified
-                        ? 'bg-green-50 text-green-700 border-green-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}
-                  >
-                    {s.verified ? 'Verified' : 'Pending'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleVerified(s)}
-                    disabled={togglingId === s.id}
-                    className={`text-sm font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
-                      s.verified
-                        ? 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                        : 'border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100'
-                    }`}
-                  >
-                    {togglingId === s.id
-                      ? '...'
-                      : s.verified
-                        ? 'Unverify'
-                        : 'Verify'}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {!loadingStudents && students.length > 0 && (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th className="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((s) => (
+                  <tr key={s.id}>
+                    <td className="font-medium">{s.name}</td>
+                    <td className="text-[var(--color-text-secondary)] font-mono text-[13px]">{s.email}</td>
+                    <td>
+                      <span className={`badge ${s.verified ? 'badge-success' : 'badge-warning'}`}>
+                        {s.verified ? 'Verified' : 'Pending'}
+                      </span>
+                    </td>
+                    <td className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleVerified(s)}
+                        disabled={togglingId === s.id}
+                        className={s.verified ? 'btn-ghost text-sm py-1.5 px-3' : 'btn-primary text-sm py-1.5 px-3'}
+                      >
+                        {togglingId === s.id ? '…' : s.verified ? 'Unverify' : 'Verify'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
       {tab === 'courses' && (
         <div>
-          <form onSubmit={handleCreateCourse} className="card p-4 flex flex-wrap gap-2 mb-8">
+          <form onSubmit={handleCreateCourse} className="card flex flex-wrap gap-3 mb-8 p-4">
             <input className="input max-w-sm flex-1 min-w-[10rem]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Course name" required />
             <button type="submit" className="btn-primary" disabled={creatingCourse || !name}>
-              {creatingCourse ? 'Adding...' : 'Add Course'}
+              {creatingCourse ? 'Adding…' : 'Add course'}
             </button>
           </form>
           {loading && (
-            <div className="flex items-center gap-2 text-slate-500 mb-4">
-              <span className="h-5 w-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-              Loading courses...
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2].map((i) => <div key={i} className="skeleton skeleton-card" />)}
             </div>
+          )}
+          {!loading && !courses.length && (
+            <EmptyState icon={BookOpen} title="No courses yet" description="Add a course to start uploading resources and exams." />
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {courses.map((c) => <CourseCard key={c.id} course={c} />)}

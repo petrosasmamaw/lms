@@ -54,64 +54,53 @@ export default function SignupPage() {
     <div className="auth-shell">
       <div className="auth-card card max-w-lg">
         <div className="text-center mb-6">
-          <div className="mb-4 flex justify-center">
+          <div className="mb-6 flex justify-center">
             <Logo variant="student" size="lg" asLink={false} />
           </div>
-          <h2 className="text-2xl font-extrabold text-slate-800">Student Sign Up</h2>
-          <p className="text-slate-500 text-sm mt-1 font-semibold">Join your department and year to access courses</p>
+          <h2 className="font-display text-[var(--text-2xl)] font-bold text-[var(--color-text-primary)]">Student sign up</h2>
+          <p className="page-subtitle">Join your department and year to access courses</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-bold text-slate-600 mb-1.5">Full name</label>
-            <input className="input" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <label className="label" htmlFor="name">Full name</label>
+            <input id="name" className="input" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-600 mb-1.5">Email</label>
-            <input className="input" type="email" placeholder="student@university.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <label className="label" htmlFor="email">Email</label>
+            <input id="email" className="input" type="email" autoComplete="email" placeholder="student@university.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-600 mb-1.5">Password</label>
-            <input className="input" type="password" placeholder="Min. 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required />
+            <label className="label" htmlFor="password">Password</label>
+            <input id="password" className="input" type="password" autoComplete="new-password" placeholder="Min. 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required />
           </div>
-
           <div>
-            <label className="block text-sm font-bold text-slate-600 mb-1.5">Department</label>
-            <select
-              className="input"
-              value={departmentId}
-              onChange={(e) => setDepartmentId(e.target.value)}
-              required
-              disabled={loadingDepts || !departments.length}
-            >
-              {loadingDepts && <option>Loading departments...</option>}
+            <label className="label" htmlFor="department">Department</label>
+            <select id="department" className="select" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} required disabled={loadingDepts || !departments.length}>
+              {loadingDepts && <option>Loading departments…</option>}
               {!loadingDepts && !departments.length && <option value="">No departments available</option>}
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
           </div>
-
           <div>
-            <label className="block text-sm font-bold text-slate-600 mb-1.5">Year</label>
-            <select className="input" value={year} onChange={(e) => setYear(e.target.value)} required>
+            <label className="label" htmlFor="year">Year</label>
+            <select id="year" className="select" value={year} onChange={(e) => setYear(e.target.value)} required>
               {YEAR_OPTIONS.map((y) => (
                 <option key={y.value} value={y.value}>{y.label}</option>
               ))}
             </select>
           </div>
-
           <button type="submit" className="btn-primary w-full mt-2" disabled={loading || !departmentId}>
-            {loading ? 'Creating account...' : 'Sign Up'}
+            {loading ? 'Creating account…' : 'Sign up'}
           </button>
           {error && <p className="toast-error">{error.message || 'Sign up failed'}</p>}
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-500 font-semibold">
+        <p className="mt-6 text-center text-[var(--text-sm)] text-[var(--color-text-secondary)]">
           Already registered?{' '}
-          <Link to="/login" className="text-orange-600 font-extrabold hover:text-orange-700">
-            Log in
-          </Link>
+          <Link to="/login" className="link-accent">Log in</Link>
         </p>
       </div>
     </div>

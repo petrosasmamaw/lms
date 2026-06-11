@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
+import { ClipboardList } from 'lucide-react'
 import {
   fetchExams,
   fetchQuestions,
@@ -8,6 +9,7 @@ import {
   submitExam,
   clearSubmission,
 } from '../features/exams/examsSlice'
+import EmptyState from '../components/ui/EmptyState'
 
 function ExamTaker({ examId, onDone }) {
   const dispatch = useDispatch()
@@ -32,9 +34,9 @@ function ExamTaker({ examId, onDone }) {
     const score = attempt.score
     const pct = score != null ? `${score}%` : 'Recorded'
     return (
-      <div className="card p-6 bg-emerald-50 border-emerald-200">
-        <p className="font-extrabold text-emerald-800">You already submitted this exam.</p>
-        <p className="text-emerald-700 mt-1 font-bold">Score: {pct}</p>
+      <div className="alert-info">
+        <p className="font-medium">You already submitted this exam.</p>
+        <p className="mt-1 font-mono text-[var(--text-sm)]">Score: {pct}</p>
       </div>
     )
   }
@@ -55,40 +57,38 @@ function ExamTaker({ examId, onDone }) {
   const progress = qs.length ? Math.round((answered / qs.length) * 100) : 0
 
   if (!qs.length && !loading) {
-    return <p className="text-slate-500 font-semibold">This exam has no questions yet.</p>
+    return <p className="text-[var(--text-sm)] text-[var(--color-text-secondary)]">This exam has no questions yet.</p>
   }
 
   return (
     <div className="space-y-4">
-      <div className="card p-5">
-        <div className="flex justify-between text-sm font-extrabold text-slate-600 mb-2">
+      <div className="card">
+        <div className="flex justify-between text-[var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-2">
           <span>Progress</span>
-          <span>{answered} / {qs.length} answered</span>
+          <span className="font-mono">{answered} / {qs.length} answered</span>
         </div>
-        <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-orange-400 to-orange-600 transition-all rounded-full" style={{ width: `${progress}%` }} />
+        <div className="progress-track">
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
       {qs.map((q, idx) => (
-        <div key={q.id} className="card p-5">
-          <p className="font-extrabold text-slate-800 mb-4">
-            {idx + 1}. {q.questionText}
+        <div key={q.id} className="card">
+          <p className="font-medium text-[var(--color-text-primary)] mb-4">
+            <span className="font-mono text-[var(--color-text-tertiary)] mr-2">{idx + 1}.</span>
+            {q.questionText}
           </p>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {(q.choices || []).map((c) => (
-              <label
-                key={c.id}
-                className="flex items-center gap-3 p-3.5 rounded-xl border-2 border-slate-100 hover:border-orange-200 cursor-pointer has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50 transition-colors"
-              >
+              <label key={c.id} className="choice-label">
                 <input
                   type="radio"
                   name={`q-${q.id}`}
-                  className="w-5 h-5 accent-orange-600"
+                  className="accent-[var(--color-accent)] w-4 h-4"
                   checked={Number(answers[q.id]) === c.id}
                   onChange={() => handleChange(q.id, c.id)}
                 />
-                <span className="text-slate-700 font-semibold">{c.choiceText}</span>
+                <span className="text-[var(--text-sm)]">{c.choiceText}</span>
               </label>
             ))}
           </div>
@@ -98,20 +98,13 @@ function ExamTaker({ examId, onDone }) {
       {error && <p className="toast-error">{error.message || 'Submission failed'}</p>}
 
       {submission && submission.examId == examId && (
-        <div className="card p-6 bg-emerald-50 border-emerald-200">
-          <p className="font-extrabold text-emerald-800 text-lg">
-            You scored {submission.correct}/{submission.total} ({submission.score}%)
-          </p>
+        <div className="toast-success">
+          You scored <span className="font-mono">{submission.correct}/{submission.total}</span> ({submission.score}%)
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={handleSubmit}
-        className="btn-primary w-full sm:w-auto"
-        disabled={loading || answered < qs.length}
-      >
-        {loading ? 'Submitting...' : 'Submit Exam'}
+      <button type="button" onClick={handleSubmit} className="btn-primary w-full sm:w-auto" disabled={loading || answered < qs.length}>
+        {loading ? 'Submitting…' : 'Submit exam'}
       </button>
     </div>
   )
@@ -136,28 +129,28 @@ export default function ExamPage() {
       </header>
 
       {loading && (
-        <div className="flex items-center gap-3 text-slate-500 py-6">
-          <span className="h-7 w-7 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <span className="font-bold">Loading exams...</span>
+        <div className="loading-row">
+          <span className="spinner" />
+          Loading exams…
         </div>
       )}
 
       {!activeExamId && (
         <div className="space-y-3">
           {exams.map((exam) => (
-            <div key={exam.id} className="card p-5 flex items-center justify-between gap-4">
-              <span className="font-extrabold text-slate-800">{exam.title}</span>
+            <div key={exam.id} className="card flex items-center justify-between gap-4">
+              <span className="section-title">{exam.title}</span>
               <button type="button" className="btn-primary text-sm shrink-0" onClick={() => setActiveExamId(exam.id)}>
-                Start Exam
+                Start exam
               </button>
             </div>
           ))}
           {!loading && !exams.length && (
-            <div className="card p-10 text-center">
-              <span className="text-4xl" aria-hidden>📋</span>
-              <p className="text-slate-600 font-bold mt-4">No exams available</p>
-              <p className="text-slate-500 text-sm mt-1 font-semibold">Your instructor hasn&apos;t published any exams yet.</p>
-            </div>
+            <EmptyState
+              icon={ClipboardList}
+              title="No exams available"
+              description="Your instructor hasn't published any exams yet."
+            />
           )}
         </div>
       )}

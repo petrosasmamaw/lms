@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
+import { ExternalLink, Trash2, FolderOpen } from 'lucide-react'
 import { fetchResources, uploadResource, deleteResource } from '../features/resources/resourcesSlice'
+import EmptyState from '../components/ui/EmptyState'
 
 function detectResourceType(filename = '') {
   const name = filename.toLowerCase()
@@ -9,6 +11,12 @@ function detectResourceType(filename = '') {
   if (name.endsWith('.doc') || name.endsWith('.docx')) return 'doc'
   if (name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.webm')) return 'video'
   return 'pdf'
+}
+
+const TYPE_BADGE = {
+  pdf: 'badge-error',
+  doc: 'badge-info',
+  video: 'badge-accent',
 }
 
 export default function ResourcesPage() {
@@ -37,10 +45,8 @@ export default function ResourcesPage() {
       alert('Please fill in title and select a file')
       return
     }
-
     const uploadType = detectResourceType(file.name)
     const result = await dispatch(uploadResource({ courseId, title, type: uploadType, file }))
-
     if (result.payload) {
       setTitle('')
       setFile(null)
@@ -58,81 +64,75 @@ export default function ResourcesPage() {
   return (
     <div className="page-shell">
       <Link to={`/courses/${courseId}`} className="link-back">← Course</Link>
-      <div className="mt-3 mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Resources</h1>
-        <p className="text-slate-500 text-sm mt-1">Upload and manage course materials</p>
+      <div className="mt-4 mb-8">
+        <h1 className="page-title">Resources</h1>
+        <p className="page-subtitle">Upload and manage course materials</p>
       </div>
 
-      <form onSubmit={handleUpload} className="card p-6 space-y-4 mb-10 max-w-lg">
-        <h2 className="font-semibold text-slate-800">Upload new resource</h2>
-        <input
-          className="input"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Resource title"
-          required
-        />
-        <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="pdf">PDF</option>
-          <option value="doc">Document (DOC/DOCX)</option>
-          <option value="video">Video (MP4/MOV/WEBM)</option>
-        </select>
+      <form onSubmit={handleUpload} className="card space-y-4 mb-10 max-w-lg">
+        <h2 className="section-title">Upload new resource</h2>
         <div>
-          <input
-            type="file"
-            className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 file:font-semibold hover:file:bg-indigo-100"
-            onChange={handleFileChange}
-            accept=".pdf,.doc,.docx,.mp4,.mov,.webm"
-            required
-          />
+          <label className="label" htmlFor="title">Title</label>
+          <input id="title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Resource title" required />
+        </div>
+        <div>
+          <label className="label" htmlFor="type">Type</label>
+          <select id="type" className="select" value={type} onChange={(e) => setType(e.target.value)}>
+            <option value="pdf">PDF</option>
+            <option value="doc">Document (DOC/DOCX)</option>
+            <option value="video">Video (MP4/MOV/WEBM)</option>
+          </select>
+        </div>
+        <div>
+          <label className="label" htmlFor="file">File</label>
+          <input id="file" type="file" className="file-input" onChange={handleFileChange} accept=".pdf,.doc,.docx,.mp4,.mov,.webm" required />
           {file && (
-            <p className="text-xs text-slate-500 mt-1">
-              Selected: {file.name} ({type.toUpperCase()})
+            <p className="helper-text font-mono">
+              {file.name} · {type.toUpperCase()}
             </p>
           )}
         </div>
         <button type="submit" className="btn-primary w-full" disabled={loading}>
-          {loading ? 'Uploading...' : 'Upload'}
+          {loading ? 'Uploading…' : 'Upload'}
         </button>
-        {message && <p className="text-green-600 text-sm font-semibold bg-green-50 p-3 rounded">{message}</p>}
+        {message && <p className="toast-success">{message}</p>}
         {error && (
-          <p className="text-red-600 text-sm font-semibold bg-red-50 p-3 rounded">
+          <p className="toast-error">
             {typeof error === 'string' ? error : error?.message || 'Upload failed'}
           </p>
         )}
       </form>
 
+      {loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => <div key={i} className="skeleton skeleton-card" />)}
+        </div>
+      )}
+
+      {!loading && !list.length && (
+        <EmptyState icon={FolderOpen} title="No resources yet" description="Upload your first PDF, document, or video above." />
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {list.map((r) => (
-          <div key={r.id} className="card p-5">
-            <div className="font-semibold text-slate-800">{r.title}</div>
-            <span className="inline-block mt-3 text-xs uppercase tracking-wide font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+          <div key={r.id} className="card">
+            <div className="font-medium text-[var(--color-text-primary)]">{r.title}</div>
+            <span className={`badge ${TYPE_BADGE[r.type] || 'badge-neutral'} mt-3 uppercase`}>
               {r.type}
             </span>
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-2 mt-4 pt-4 border-t border-[var(--color-border)]">
               {r.url && (
-                <a
-                  href={r.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-600 text-sm font-semibold hover:underline flex-1"
-                >
-                  Open →
+                <a href={r.url} target="_blank" rel="noopener noreferrer" className="link-accent text-sm flex items-center gap-1 flex-1">
+                  <ExternalLink size={14} strokeWidth={1.5} aria-hidden="true" />
+                  Open
                 </a>
               )}
-              <button
-                onClick={() => handleDelete(r.id)}
-                disabled={loading}
-                className="text-red-600 text-sm font-semibold hover:text-red-800 px-3 py-1"
-              >
-                ✕
+              <button type="button" onClick={() => handleDelete(r.id)} disabled={loading} className="btn-icon text-[var(--color-error)]">
+                <Trash2 size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
             </div>
           </div>
         ))}
-        {!list.length && !loading && (
-          <p className="text-slate-400 col-span-full py-8 text-center">No resources uploaded yet.</p>
-        )}
       </div>
     </div>
   )

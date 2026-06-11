@@ -7,8 +7,8 @@ export default function ProtectedRoute({ children }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <span className="h-10 w-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm font-medium text-slate-500">Loading session...</span>
+        <span className="spinner spinner-lg" />
+        <span className="text-[var(--text-sm)] text-[var(--color-text-secondary)]">Loading session…</span>
       </div>
     )
   }

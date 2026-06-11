@@ -22,36 +22,34 @@ export default function SignupPage() {
     <div className="auth-shell">
       <div className="auth-card card">
         <div className="text-center mb-8">
-          <div className="mb-4 flex justify-center">
+          <div className="mb-6 flex justify-center">
             <Logo variant="admin" size="lg" asLink={false} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800">Create Admin Account</h2>
-          <p className="text-slate-500 text-sm mt-1">Admins are not assigned to a department or year</p>
+          <h2 className="font-display text-[var(--text-2xl)] font-bold text-[var(--color-text-primary)]">Create admin account</h2>
+          <p className="page-subtitle">Admins are not assigned to a department or year</p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-1.5">Full name</label>
-            <input className="input" placeholder="Jane Admin" value={name} onChange={(e) => setName(e.target.value)} required />
+            <label className="label" htmlFor="name">Full name</label>
+            <input id="name" className="input" placeholder="Jane Admin" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-1.5">Email</label>
-            <input className="input" placeholder="you@university.edu" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <label className="label" htmlFor="email">Email</label>
+            <input id="email" className="input" placeholder="you@university.edu" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-600 mb-1.5">Password</label>
-            <input className="input" placeholder="Min. 8 characters" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required />
+            <label className="label" htmlFor="password">Password</label>
+            <input id="password" className="input" placeholder="Min. 8 characters" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required />
           </div>
           <button type="submit" className="btn-primary w-full mt-2" disabled={loading}>
-            {loading ? 'Creating...' : 'Sign Up'}
+            {loading ? 'Creating…' : 'Sign up'}
           </button>
           {error && <p className="toast-error">{error.message || 'Sign up failed'}</p>}
           {message && <p className="toast-success">{message}</p>}
         </form>
-        <p className="mt-6 text-center text-sm text-slate-500">
+        <p className="mt-6 text-center text-[var(--text-sm)] text-[var(--color-text-secondary)]">
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-700">
-            Log in
-          </Link>
+          <Link to="/login" className="link-accent">Log in</Link>
         </p>
       </div>
     </div>

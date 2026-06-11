@@ -1,7 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
+import { LogOut, LayoutDashboard } from 'lucide-react'
 import { logout } from '../features/auth/authSlice'
 import Logo from './Logo'
+import ThemeToggle from './ThemeToggle'
 
 export default function Navbar() {
   const user = useSelector((s) => s.auth.user)
@@ -14,34 +16,29 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 shadow-sm">
-      <div className="container mx-auto px-4 py-3.5 flex items-center justify-between">
+    <nav className="navbar">
+      <div className="container mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-4">
         <Logo variant="admin" size="md" />
-        <div className="flex items-center gap-3 text-sm font-medium">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           {!user && (
             <>
-              <Link to="/signup" className="text-slate-600 hover:text-indigo-600 px-2 py-1.5 transition-colors">
-                Sign Up
-              </Link>
-              <Link to="/login" className="btn-primary py-2 px-4 text-sm">
-                Log In
-              </Link>
+              <Link to="/signup" className="nav-link hidden sm:inline-flex">Sign up</Link>
+              <Link to="/login" className="btn-primary text-sm py-2 px-4">Log in</Link>
             </>
           )}
           {user && (
             <>
-              <span className="hidden sm:inline text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-medium truncate max-w-[200px]">
+              <span className="hidden md:inline badge badge-neutral max-w-[200px] truncate font-mono text-[11px]">
                 {user.email}
               </span>
-              <Link to="/dashboard" className="text-slate-600 hover:text-indigo-600 px-2 py-1.5 transition-colors">
+              <Link to="/dashboard" className="nav-link hidden sm:inline-flex items-center gap-2">
+                <LayoutDashboard size={16} strokeWidth={1.5} aria-hidden="true" />
                 Dashboard
               </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="text-red-600 hover:text-white hover:bg-red-500 border border-red-200 hover:border-red-500 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all"
-              >
-                Log Out
+              <button type="button" onClick={handleLogout} className="btn-ghost text-sm items-center gap-2">
+                <LogOut size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="hidden sm:inline">Log out</span>
               </button>
             </>
           )}

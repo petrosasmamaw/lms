@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
+import { Check, ClipboardList } from 'lucide-react'
 import { fetchExams, createExam, fetchQuestions, addQuestion } from '../features/exams/examsSlice'
+import EmptyState from '../components/ui/EmptyState'
 
 export default function ExamPage() {
   const { courseId } = useParams()
@@ -52,59 +54,54 @@ export default function ExamPage() {
   return (
     <div className="page-shell">
       <Link to={`/courses/${courseId}`} className="link-back">← Course</Link>
-      <div className="mt-3 mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Exams</h1>
-        <p className="text-slate-500 text-sm mt-1">Create exams and add multiple-choice questions</p>
+      <div className="mt-4 mb-8">
+        <h1 className="page-title">Exams</h1>
+        <p className="page-subtitle">Create exams and add multiple-choice questions</p>
       </div>
 
-      <form onSubmit={handleCreate} className="card p-4 flex flex-wrap gap-2 mb-8">
+      <form onSubmit={handleCreate} className="card flex flex-wrap gap-3 mb-8 p-4">
         <input className="input max-w-sm flex-1 min-w-[10rem]" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Exam title" required />
         <button type="submit" className="btn-primary whitespace-nowrap" disabled={createLoading || !title}>
-          {createLoading ? 'Creating...' : 'Create New Exam'}
+          {createLoading ? 'Creating…' : 'Create exam'}
         </button>
       </form>
 
       <div className="space-y-4">
         {exams.map((ex) => (
-          <div key={ex.id} className="card p-5">
+          <div key={ex.id} className="card">
             <div className="flex justify-between items-center gap-4">
-              <h3 className="font-bold text-slate-800 text-lg">{ex.title}</h3>
+              <h3 className="section-title">{ex.title}</h3>
               <button type="button" onClick={() => open(ex)} className="btn-secondary text-sm shrink-0">
-                {openExam === ex.id ? 'Expanded' : 'Manage'}
+                {openExam === ex.id ? 'Collapse' : 'Manage'}
               </button>
             </div>
             {openExam === ex.id && (
-              <div className="mt-5 border-t border-slate-100 pt-5">
-                <h4 className="font-semibold mb-4 text-slate-700">Questions</h4>
+              <div className="mt-5 pt-5 border-t border-[var(--color-border)]">
+                <h4 className="text-[var(--text-sm)] font-medium text-[var(--color-text-secondary)] mb-4 uppercase tracking-wide">Questions</h4>
                 {(questions[ex.id] || []).map((q) => (
-                  <div key={q.id} className="mb-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <p className="font-medium text-slate-800">{q.questionText}</p>
-                    <ul className="mt-2 space-y-1 text-sm">
+                  <div key={q.id} className="mb-3 p-4 rounded-[var(--radius-md)] bg-[var(--color-bg-subtle)] border border-[var(--color-border)]">
+                    <p className="font-medium text-[var(--color-text-primary)]">{q.questionText}</p>
+                    <ul className="mt-2 space-y-1">
                       {(q.choices || []).map((c) => (
-                        <li key={c.id} className={c.isCorrect ? 'text-emerald-600 font-semibold' : 'text-slate-500'}>
-                          {c.isCorrect ? '✓ ' : '○ '}{c.choiceText}
+                        <li key={c.id} className={`text-[var(--text-sm)] flex items-center gap-2 ${c.isCorrect ? 'text-[var(--color-success)]' : 'text-[var(--color-text-secondary)]'}`}>
+                          {c.isCorrect && <Check size={14} strokeWidth={1.5} aria-hidden="true" />}
+                          {c.choiceText}
                         </li>
                       ))}
                     </ul>
                   </div>
                 ))}
-                <div className="mt-4 p-5 bg-indigo-50/50 rounded-xl border border-indigo-100">
-                  <p className="text-sm font-semibold text-indigo-800 mb-3">Add question</p>
+                <div className="mt-4 p-5 rounded-[var(--radius-md)] bg-[var(--color-accent-muted)] border border-[var(--color-accent-border)]">
+                  <p className="text-[var(--text-sm)] font-medium text-[var(--color-accent)] mb-3">Add question</p>
                   <input className="input mb-3" value={qText} onChange={(e) => setQText(e.target.value)} placeholder="Question text" />
                   {choices.map((c, idx) => (
                     <div key={idx} className="flex items-center gap-2 mb-2">
-                      <input
-                        type="radio"
-                        name={`correct-${ex.id}`}
-                        className="accent-indigo-600 w-4 h-4"
-                        checked={correct === idx}
-                        onChange={() => setCorrect(idx)}
-                      />
+                      <input type="radio" name={`correct-${ex.id}`} className="accent-[var(--color-accent)] w-4 h-4" checked={correct === idx} onChange={() => setCorrect(idx)} />
                       <input className="input" value={c} onChange={(e) => { const next = [...choices]; next[idx] = e.target.value; setChoices(next) }} placeholder={`Choice ${idx + 1}`} />
                     </div>
                   ))}
                   <button type="button" onClick={() => handleAddQuestion(ex.id)} className="btn-primary mt-3" disabled={addingQuestionFor === ex.id}>
-                    {addingQuestionFor === ex.id ? 'Adding...' : 'Add Question'}
+                    {addingQuestionFor === ex.id ? 'Adding…' : 'Add question'}
                   </button>
                 </div>
               </div>
@@ -112,7 +109,7 @@ export default function ExamPage() {
           </div>
         ))}
         {!exams.length && (
-          <p className="text-slate-400 text-center py-8 card">No exams created yet. Add one above.</p>
+          <EmptyState icon={ClipboardList} title="No exams yet" description="Create an exam above to start adding questions." />
         )}
       </div>
     </div>
