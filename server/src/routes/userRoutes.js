@@ -1,9 +1,10 @@
 import express from 'express';
-import { authenticateUser } from '../middleware/auth.js';
-import { listUsers } from '../controllers/userController.js';
+import { authenticateUser, requireAdmin } from '../middleware/auth.js';
+import { listUsers, toggleStudentVerified } from '../controllers/userController.js';
 
 const router = express.Router();
 
-router.get('/', authenticateUser, listUsers);
+router.get('/', authenticateUser, requireAdmin, listUsers);
+router.patch('/:id/verified', authenticateUser, requireAdmin, toggleStudentVerified);
 
 export default router;

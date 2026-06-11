@@ -41,7 +41,10 @@ app.get('/api/users/me', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Not authenticated' });
     }
 
-    return res.json({ success: true, user: session.user });
+    const { getUserById } = await import('./services/userService.js');
+    const profile = await getUserById(session.user.id);
+
+    return res.json({ success: true, user: profile || session.user });
   } catch (err) {
     console.error('GET /api/users/me', err);
     return res.status(500).json({ success: false, message: 'Failed to load user' });

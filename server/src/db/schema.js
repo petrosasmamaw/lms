@@ -19,6 +19,7 @@ export const user = pgTable('user', {
   emailVerified: boolean('email_verified').default(false).notNull(),
   image: text('image'),
   role: varchar('role', { length: 20 }).notNull().default('student'),
+  verified: boolean('verified').default(false).notNull(),
   departmentId: integer('department_id'),
   year: integer('year'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

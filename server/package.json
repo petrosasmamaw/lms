@@ -9,6 +9,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:reset": "node src/init/resetAuthTables.js",
+    "db:add-verified": "node src/init/addVerifiedColumn.js",
     "seed": "node src/scripts/seedDemo.mjs"
   },
   "keywords": [],

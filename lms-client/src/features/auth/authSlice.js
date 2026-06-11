@@ -63,7 +63,7 @@ const slice = createSlice({
       .addCase(signupStudent.pending, (s) => { s.loading = true; s.error = null })
       .addCase(signupStudent.fulfilled, (s) => {
         s.loading = false
-        s.message = 'Account created. Please log in.'
+        s.message = 'Account created. Please log in after an admin verifies your account.'
       })
       .addCase(signupStudent.rejected, (s, a) => { s.loading = false; s.error = a.payload })
 

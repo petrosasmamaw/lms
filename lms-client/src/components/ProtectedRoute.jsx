@@ -1,5 +1,32 @@
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Navigate } from 'react-router-dom'
+import { fetchSession } from '../features/auth/authSlice'
+
+function PendingVerification() {
+  const dispatch = useDispatch()
+  const { loading } = useSelector((s) => s.auth)
+
+  return (
+    <div className="card p-8 max-w-lg mx-auto mt-12 text-center">
+      <span className="text-4xl" aria-hidden>⏳</span>
+      <h2 className="text-xl font-extrabold text-slate-800 mt-4">Account pending verification</h2>
+      <p className="text-slate-600 mt-2 font-semibold">
+        Your account has been created but an administrator must verify you before you can access courses and materials.
+      </p>
+      <p className="text-slate-500 text-sm mt-2">
+        Please contact your department admin. Once verified, refresh this page to continue.
+      </p>
+      <button
+        type="button"
+        onClick={() => dispatch(fetchSession())}
+        disabled={loading}
+        className="btn-primary mt-6"
+      >
+        {loading ? 'Checking...' : 'Check verification status'}
+      </button>
+    </div>
+  )
+}
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useSelector((s) => s.auth)
@@ -20,6 +47,10 @@ export default function ProtectedRoute({ children }) {
         <p className="text-sm text-slate-500 mt-2">Please use the admin app if you have an admin account.</p>
       </div>
     )
+  }
+
+  if (user.role === 'student' && !user.verified) {
+    return <PendingVerification />
   }
 
   return children

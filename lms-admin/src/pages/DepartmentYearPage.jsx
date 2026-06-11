@@ -17,9 +17,19 @@ export default function DepartmentYearPage() {
   const [creatingCourse, setCreatingCourse] = useState(false)
   const [students, setStudents] = useState([])
   const [loadingStudents, setLoadingStudents] = useState(false)
+  const [togglingId, setTogglingId] = useState(null)
 
   const dept = departments.find((d) => String(d.id) === String(departmentId))
   const deptName = dept?.name || `Department ${departmentId}`
+
+  const loadStudents = () => {
+    setLoadingStudents(true)
+    axios
+      .get('/users', { params: { role: 'student', departmentId, year } })
+      .then((res) => setStudents(unwrap(res).users || []))
+      .catch(() => setStudents([]))
+      .finally(() => setLoadingStudents(false))
+  }
 
   useEffect(() => {
     dispatch(fetchDepartments())
@@ -28,12 +38,7 @@ export default function DepartmentYearPage() {
 
   useEffect(() => {
     if (tab !== 'students') return
-    setLoadingStudents(true)
-    axios
-      .get('/users', { params: { role: 'student', departmentId, year } })
-      .then((res) => setStudents(unwrap(res).users || []))
-      .catch(() => setStudents([]))
-      .finally(() => setLoadingStudents(false))
+    loadStudents()
   }, [tab, departmentId, year])
 
   const handleCreateCourse = async (e) => {
@@ -45,6 +50,23 @@ export default function DepartmentYearPage() {
       dispatch(fetchCourses({ departmentId, year }))
     } finally {
       setCreatingCourse(false)
+    }
+  }
+
+  const handleToggleVerified = async (student) => {
+    setTogglingId(student.id)
+    try {
+      const res = await axios.patch(`/users/${student.id}/verified`, {
+        verified: !student.verified,
+      })
+      const updated = unwrap(res).user
+      setStudents((prev) =>
+        prev.map((s) => (s.id === student.id ? { ...s, verified: updated.verified } : s)),
+      )
+    } catch {
+      alert('Failed to update verification status')
+    } finally {
+      setTogglingId(null)
     }
   }
 
@@ -87,9 +109,38 @@ export default function DepartmentYearPage() {
           )}
           <ul className="divide-y divide-slate-100">
             {students.map((s) => (
-              <li key={s.id} className="py-3.5 flex justify-between items-center gap-4">
-                <span className="font-semibold text-slate-800">{s.name}</span>
-                <span className="text-slate-500 text-sm truncate">{s.email}</span>
+              <li key={s.id} className="py-3.5 flex flex-wrap justify-between items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold text-slate-800 block">{s.name}</span>
+                  <span className="text-slate-500 text-sm truncate block">{s.email}</span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span
+                    className={`text-xs font-semibold uppercase px-2.5 py-1 rounded-full border ${
+                      s.verified
+                        ? 'bg-green-50 text-green-700 border-green-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}
+                  >
+                    {s.verified ? 'Verified' : 'Pending'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleVerified(s)}
+                    disabled={togglingId === s.id}
+                    className={`text-sm font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                      s.verified
+                        ? 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        : 'border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100'
+                    }`}
+                  >
+                    {togglingId === s.id
+                      ? '...'
+                      : s.verified
+                        ? 'Unverify'
+                        : 'Verify'}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

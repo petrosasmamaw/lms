@@ -42,6 +42,7 @@ export async function signupAdmin(req, res) {
     if (created) {
       await updateUserProfile(created.id, {
         role: 'admin',
+        verified: true,
         departmentId: null,
         year: null,
       });
@@ -94,6 +95,7 @@ export async function signupStudent(req, res) {
     if (created) {
       await updateUserProfile(created.id, {
         role: 'student',
+        verified: false,
         departmentId: Number(departmentId),
         year: yearNum,
       });
@@ -104,7 +106,7 @@ export async function signupStudent(req, res) {
     const profile = await getUserByEmail(email);
     return res.status(authResponse.status).json({
       success: true,
-      message: 'Student account created',
+      message: 'Student account created. An administrator must verify your account before you can access courses.',
       data: { user: profile, session: payload },
     });
   } catch (err) {

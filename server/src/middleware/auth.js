@@ -1,5 +1,6 @@
 import { fromNodeHeaders } from 'better-auth/node';
 import { auth } from '../config/auth.js';
+import { getUserById } from '../services/userService.js';
 
 export async function authenticateUser(req, res, next) {
   try {
@@ -11,9 +12,10 @@ export async function authenticateUser(req, res, next) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    req.user = session.user;
+    const profile = await getUserById(session.user.id);
+    req.user = profile || session.user;
     req.userId = session.user.id;
-    req.userRole = session.user.role;
+    req.userRole = req.user.role;
     next();
   } catch (err) {
     console.error('[AUTH]', err);
@@ -35,4 +37,16 @@ export function requireStudent(req, res, next) {
     return res.status(403).json({ success: false, message: 'Forbidden - students only' });
   }
   next();
+}
+
+/** Students must be verified by admin before accessing courses and materials. */
+export function requireVerified(req, res, next) {
+  if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+  if (req.user.role === 'admin') return next();
+  if (req.user.role === 'student' && req.user.verified) return next();
+  return res.status(403).json({
+    success: false,
+    message: 'Your account is pending verification. Please contact your administrator.',
+    code: 'NOT_VERIFIED',
+  });
 }

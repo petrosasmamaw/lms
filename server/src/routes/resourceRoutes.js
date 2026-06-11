@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { authenticateUser, requireAdmin } from '../middleware/auth.js';
+import { authenticateUser, requireAdmin, requireVerified } from '../middleware/auth.js';
 import * as resCtrl from '../controllers/resourceController.js';
 import { isAllowedResourceFile } from '../utils/cloudinaryDelivery.js';
 
@@ -29,7 +29,7 @@ const upload = multer({
 const router = express.Router();
 
 router.post('/', authenticateUser, requireAdmin, upload.single('file'), resCtrl.uploadResource);
-router.get('/', authenticateUser, resCtrl.listResources);
+router.get('/', authenticateUser, requireVerified, resCtrl.listResources);
 router.delete('/:id', authenticateUser, requireAdmin, resCtrl.deleteResource);
 
 export default router;
