@@ -1,7 +1,6 @@
 export function initTheme() {
   const stored = localStorage.getItem('lms-theme')
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const isDark = stored ? stored === 'dark' : true
+  const isDark = stored ? stored === 'dark' : false
   document.documentElement.classList.toggle('dark', isDark)
   return isDark
 }

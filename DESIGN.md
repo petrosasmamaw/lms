@@ -30,7 +30,7 @@ All colors are CSS custom properties with **light** (`:root`) and **dark** (`htm
 - Accent: admin `#6C63FF` (violet), client `#F97316` (orange)
 - Semantic: success, warning, error, info — each with muted variant
 
-**Default:** dark mode (`class="dark"` on `<html>`).
+**Default:** light mode. Dark mode available via navbar toggle (`class="dark"` on `<html>`).
 
 ### Component classes
 
