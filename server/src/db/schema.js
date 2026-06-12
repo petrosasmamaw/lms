@@ -129,3 +129,21 @@ export const questionsRelations = relations(questions, ({ many }) => ({
 export const choicesRelations = relations(choices, ({ one }) => ({
   question: one(questions, { fields: [choices.questionId], references: [questions.id] }),
 }));
+
+export const studentPayments = pgTable('student_payments', {
+  id: serial('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  year: integer('year').notNull(),
+  month: integer('month').notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('unpaid'),
+  amount: decimal('amount', { precision: 10, scale: 2 }),
+  screenshotUrl: text('screenshot_url'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  studentYearMonthIdx: index('student_payments_student_year_month_idx').on(
+    table.studentId,
+    table.year,
+    table.month,
+  ),
+}));

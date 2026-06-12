@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { BookOpen, LogOut } from 'lucide-react'
+import { BookOpen, LogOut, Wallet } from 'lucide-react'
 import { logout } from '../features/auth/authSlice'
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
@@ -32,6 +32,10 @@ export default function Navbar() {
               <Link to="/home" className="nav-link hidden sm:inline-flex items-center gap-2">
                 <BookOpen size={16} strokeWidth={1.5} aria-hidden="true" />
                 My courses
+              </Link>
+              <Link to="/payments" className="nav-link inline-flex items-center gap-2">
+                <Wallet size={16} strokeWidth={1.5} aria-hidden="true" />
+                <span className="hidden sm:inline">Payments</span>
               </Link>
               <button type="button" onClick={handleLogout} className="btn-ghost text-sm items-center gap-2">
                 <LogOut size={16} strokeWidth={1.5} aria-hidden="true" />

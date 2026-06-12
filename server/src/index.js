@@ -56,12 +56,14 @@ import courseRoutes from './routes/courseRoutes.js';
 import resourceRoutes from './routes/resourceRoutes.js';
 import examRoutes from './routes/examRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 
 app.use('/api/departments', departmentRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

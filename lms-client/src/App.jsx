@@ -10,6 +10,8 @@ import HomePage from './pages/HomePage'
 import CoursePage from './pages/CoursePage'
 import ResourcesPage from './pages/ResourcesPage'
 import ExamPage from './pages/ExamPage'
+import PaymentsPage from './pages/PaymentsPage'
+import LoggedInRoute from './components/LoggedInRoute'
 
 function HomeRedirect() {
   const user = useSelector((s) => s.auth.user)
@@ -32,6 +34,7 @@ export default function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          <Route path="/payments" element={<LoggedInRoute><PaymentsPage /></LoggedInRoute>} />
           <Route path="/courses/:courseId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
           <Route path="/courses/:courseId/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
           <Route path="/courses/:courseId/exams" element={<ProtectedRoute><ExamPage /></ProtectedRoute>} />

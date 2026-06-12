@@ -7,7 +7,7 @@ import axios from '../api/axiosInstance'
 import { unwrap } from '../api/unwrap'
 import CourseCard from '../components/CourseCard'
 import EmptyState from '../components/ui/EmptyState'
-import { Users, BookOpen } from 'lucide-react'
+import { Users, BookOpen, Wallet } from 'lucide-react'
 
 export default function DepartmentYearPage() {
   const { departmentId, year } = useParams()
@@ -112,7 +112,7 @@ export default function DepartmentYearPage() {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Status</th>
-                  <th className="text-right">Action</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,14 +126,23 @@ export default function DepartmentYearPage() {
                       </span>
                     </td>
                     <td className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleVerified(s)}
-                        disabled={togglingId === s.id}
-                        className={s.verified ? 'btn-ghost text-sm py-1.5 px-3' : 'btn-primary text-sm py-1.5 px-3'}
-                      >
-                        {togglingId === s.id ? '…' : s.verified ? 'Unverify' : 'Verify'}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          to={`/departments/${departmentId}/year/${year}/students/${s.id}/payments`}
+                          className="btn-secondary text-sm py-1.5 px-3 inline-flex items-center gap-1.5"
+                        >
+                          <Wallet size={14} strokeWidth={1.5} aria-hidden="true" />
+                          Payments
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleVerified(s)}
+                          disabled={togglingId === s.id}
+                          className={s.verified ? 'btn-ghost text-sm py-1.5 px-3' : 'btn-primary text-sm py-1.5 px-3'}
+                        >
+                          {togglingId === s.id ? '…' : s.verified ? 'Unverify' : 'Verify'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

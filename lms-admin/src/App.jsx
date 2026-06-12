@@ -7,6 +7,7 @@ import SignupPage from './pages/SignupPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import DepartmentYearPage from './pages/DepartmentYearPage'
+import StudentPaymentPage from './pages/StudentPaymentPage'
 import CoursePage from './pages/CoursePage'
 import ResourcesPage from './pages/ResourcesPage'
 import ExamPage from './pages/ExamPage'
@@ -34,6 +35,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/departments/:departmentId/year/:year" element={<ProtectedRoute><DepartmentYearPage /></ProtectedRoute>} />
+          <Route path="/departments/:departmentId/year/:year/students/:studentId/payments" element={<ProtectedRoute><StudentPaymentPage /></ProtectedRoute>} />
           <Route path="/courses/:courseId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
           <Route path="/courses/:courseId/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
           <Route path="/courses/:courseId/exams" element={<ProtectedRoute><ExamPage /></ProtectedRoute>} />
