@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import axios from '../api/axiosInstance'
 import { unwrap } from '../api/unwrap'
-import { X, Upload, Smartphone, Building2, CheckCircle2 } from 'lucide-react'
+import { X, Upload, Smartphone, Building2, CheckCircle2, XCircle, RotateCcw } from 'lucide-react'
 import { MONTH_NAMES } from '../lib/payments'
-import { PaymentFailureList, PaymentWarningList } from './PaymentVerificationResult'
+import { PaymentFailureList } from './PaymentVerificationResult'
 
 const METHODS = [
   { id: 'telebirr', label: 'Telebirr', icon: Smartphone, desc: 'Pay via Telebirr mobile money' },
@@ -16,7 +16,9 @@ export default function PaymentSubmitModal({ payment, calendarYear, onClose, onS
   const [config, setConfig] = useState(null)
   const [loadingConfig, setLoadingConfig] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [rejected, setRejected] = useState(false)
   const [failureIssues, setFailureIssues] = useState([])
+  const [rejectedPayment, setRejectedPayment] = useState(null)
   const [preview, setPreview] = useState(null)
   const today = new Date()
   const defaultDate = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`
@@ -63,10 +65,13 @@ export default function PaymentSubmitModal({ payment, calendarYear, onClose, onS
     e.preventDefault()
     if (!screenshot) {
       setFailureIssues([{ code: 'SCREENSHOT_REQUIRED', field: 'screenshot', message: 'Please upload your payment screenshot.' }])
+      setRejectedPayment(payment)
+      setRejected(true)
       return
     }
 
     setSubmitting(true)
+    setRejected(false)
     setFailureIssues([])
 
     const body = new FormData()
@@ -89,13 +94,28 @@ export default function PaymentSubmitModal({ payment, calendarYear, onClose, onS
     } catch (err) {
       const data = err.response?.data?.data
       const issues = data?.issues || data?.validation?.issues?.filter((i) => i.type === 'error') || []
-      setFailureIssues(issues)
-      if (data?.payment) {
-        onSuccess(data.payment, { issues: data.validation?.issues || issues, failed: true })
-      }
+      const fallbackMsg = err.response?.data?.message
+      setFailureIssues(
+        issues.length
+          ? issues
+          : [{ code: 'REJECTED', message: fallbackMsg || 'Payment could not be verified.' }],
+      )
+      setRejectedPayment(data?.payment || payment)
+      setRejected(true)
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleTryAgain = () => {
+    setRejected(false)
+    setFailureIssues([])
+    setStep(3)
+  }
+
+  const handleBackToPayments = () => {
+    onSuccess(rejectedPayment || payment, { issues: failureIssues, failed: true })
+    onClose()
   }
 
   const monthLabel = MONTH_NAMES[payment.month - 1]
@@ -110,24 +130,26 @@ export default function PaymentSubmitModal({ payment, calendarYear, onClose, onS
       >
         <header className="payment-modal-header">
           <div>
-            <p className="eyebrow">Submit payment</p>
+            <p className="eyebrow">{rejected ? 'Verification failed' : 'Submit payment'}</p>
             <h2 id="payment-modal-title" className="section-title mt-1">
-              {monthLabel} {calendarYear}
+              {rejected ? 'Payment rejected' : `${monthLabel} ${calendarYear}`}
             </h2>
           </div>
-          <button type="button" onClick={onClose} className="btn-icon" aria-label="Close">
+          <button type="button" onClick={rejected ? handleBackToPayments : onClose} className="btn-icon" aria-label="Close">
             <X size={18} strokeWidth={1.5} />
           </button>
         </header>
 
-        <div className="payment-modal-steps">
-          {['Method', 'Details', 'Screenshot'].map((label, i) => (
-            <div key={label} className={`payment-modal-step ${step >= i + 1 ? 'payment-modal-step-active' : ''}`}>
-              <span className="payment-modal-step-num">{i + 1}</span>
-              <span>{label}</span>
-            </div>
-          ))}
-        </div>
+        {!rejected && (
+          <div className="payment-modal-steps">
+            {['Method', 'Details', 'Screenshot'].map((label, i) => (
+              <div key={label} className={`payment-modal-step ${step >= i + 1 ? 'payment-modal-step-active' : ''}`}>
+                <span className="payment-modal-step-num">{i + 1}</span>
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {loadingConfig && (
           <div className="flex items-center justify-center py-16 gap-3">
@@ -136,7 +158,31 @@ export default function PaymentSubmitModal({ payment, calendarYear, onClose, onS
           </div>
         )}
 
-        {!loadingConfig && step === 1 && (
+        {!loadingConfig && rejected && (
+          <div className="payment-modal-body payment-rejected-screen">
+            <div className="payment-rejected-icon">
+              <XCircle size={40} strokeWidth={1.5} aria-hidden="true" />
+            </div>
+            <h3 className="payment-rejected-title">Payment rejected</h3>
+            <p className="payment-rejected-subtitle">
+              {monthLabel} {calendarYear} · Nothing was saved. Fix the issues below and try again.
+            </p>
+
+            <PaymentFailureList issues={failureIssues} title="Why it was rejected" />
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <button type="button" className="btn-ghost flex-1 gap-2" onClick={handleTryAgain}>
+                <RotateCcw size={16} strokeWidth={1.5} aria-hidden="true" />
+                Try again
+              </button>
+              <button type="button" className="btn-primary flex-1" onClick={handleBackToPayments}>
+                Back to payments
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!loadingConfig && !rejected && step === 1 && (
           <div className="payment-modal-body">
             <p className="text-[var(--text-sm)] text-[var(--color-text-secondary)] mb-4">
               Choose how you paid for {monthLabel}.
@@ -172,7 +218,7 @@ export default function PaymentSubmitModal({ payment, calendarYear, onClose, onS
           </div>
         )}
 
-        {!loadingConfig && step === 2 && (
+        {!loadingConfig && !rejected && step === 2 && (
           <form
             className="payment-modal-body space-y-4"
             onSubmit={(e) => { e.preventDefault(); setStep(3) }}
@@ -227,7 +273,7 @@ export default function PaymentSubmitModal({ payment, calendarYear, onClose, onS
           </form>
         )}
 
-        {!loadingConfig && step === 3 && (
+        {!loadingConfig && !rejected && step === 3 && (
           <form className="payment-modal-body" onSubmit={handleSubmit}>
             <p className="text-[var(--text-sm)] text-[var(--color-text-secondary)] mb-4">
               Upload a clear screenshot with the <strong>QR code visible at the bottom</strong>. We scan the QR, read the receipt with AI, and reject edited/fake receipts.
@@ -245,12 +291,6 @@ export default function PaymentSubmitModal({ payment, calendarYear, onClose, onS
                 </>
               )}
             </label>
-
-            {failureIssues.length > 0 && (
-              <div className="mt-4">
-                <PaymentFailureList issues={failureIssues} />
-              </div>
-            )}
 
             <div className="flex gap-3 mt-6">
               <button type="button" className="btn-ghost flex-1" onClick={() => setStep(2)} disabled={submitting}>Back</button>

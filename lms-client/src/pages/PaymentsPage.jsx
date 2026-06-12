@@ -56,9 +56,7 @@ export default function PaymentsPage() {
     const errors = issues.filter((i) => i.type === 'error')
     const warnings = issues.filter((i) => i.type === 'warning')
 
-    if (meta.failed || updated.status === 'pending') {
-      setToast('Payment verification failed')
-      setToastIssues(errors.length ? errors : [{ message: updated.rejectionReason || 'Could not verify payment' }])
+    if (meta.failed) {
       setSelectedPayment(null)
     } else {
       setSelectedPayment(null)
@@ -176,7 +174,7 @@ export default function PaymentsPage() {
         <div className="payment-month-grid">
           {payments.map((payment) => {
             const Icon = STATUS_ICON[payment.status] || CircleDashed
-            const canPay = payment.status === 'unpaid' || payment.status === 'pending'
+            const canPay = payment.status === 'unpaid'
             return (
               <article
                 key={payment.id}
@@ -202,14 +200,14 @@ export default function PaymentsPage() {
                     <p className="payment-month-amount font-mono">{payment.amount} ETB</p>
                   )}
                 </div>
-                {payment.status === 'pending' && payment.rejectionReason && (
-                  <p className="payment-month-hint payment-month-hint-pending line-clamp-3" title={payment.rejectionReason}>
-                    {payment.rejectionReason}
+                {payment.status === 'pending' && (
+                  <p className="payment-month-hint payment-month-hint-pending">
+                    Awaiting admin review
                   </p>
                 )}
                 {canPay && (
-                  <p className={`payment-month-hint ${payment.status === 'pending' ? 'payment-month-hint-pending' : 'payment-month-hint-pay'}`}>
-                    {payment.status === 'pending' ? 'Tap to resubmit →' : 'Tap to pay →'}
+                  <p className="payment-month-hint payment-month-hint-pay">
+                    Tap to pay →
                   </p>
                 )}
                 {payment.status === 'complete' && (

@@ -12,6 +12,7 @@
     "db:add-verified": "node src/init/addVerifiedColumn.js",
     "db:add-payments": "node src/init/addPaymentsTable.js",
     "db:add-payment-phase2": "node src/init/addPaymentPhase2Columns.js",
+    "db:reset-pending-payments": "node src/init/resetPendingPayments.js",
     "seed": "node src/scripts/seedDemo.mjs"
   },
   "keywords": [],

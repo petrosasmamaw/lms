@@ -88,9 +88,39 @@ export async function findPaymentByTxCode(txCode, excludePaymentId) {
   return db.query.studentPayments.findFirst({
     where: and(
       eq(studentPayments.txCode, txCode),
+      eq(studentPayments.status, 'complete'),
       ne(studentPayments.id, excludePaymentId),
     ),
   });
+}
+
+/** Clear failed submission data — only completed payments are kept on record. */
+export async function resetPaymentToUnpaid(paymentId) {
+  const [updated] = await db
+    .update(studentPayments)
+    .set({
+      status: 'unpaid',
+      amount: null,
+      paymentMethod: null,
+      txCode: null,
+      senderName: null,
+      senderAccount: null,
+      receiverName: null,
+      receiverAccount: null,
+      screenshotUrl: null,
+      rejectionReason: null,
+      submittedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(studentPayments.id, paymentId))
+    .returning();
+
+  return updated;
+}
+
+async function deleteCloudinaryScreenshot(publicId) {
+  if (!publicId) return;
+  await cloudinary.uploader.destroy(publicId, { resource_type: 'image' }).catch(() => {});
 }
 
 export class PaymentSubmissionError extends Error {
@@ -121,6 +151,9 @@ export async function submitStudentPayment({
   if (payment.status === 'complete') {
     throw new PaymentSubmissionError('This month is already paid', 400);
   }
+  if (payment.status === 'pending') {
+    throw new PaymentSubmissionError('This payment is awaiting admin review', 400);
+  }
   if (!['telebirr', 'cbe'].includes(method)) {
     throw new PaymentSubmissionError('Payment method must be telebirr or cbe', 400);
   }
@@ -128,6 +161,13 @@ export async function submitStudentPayment({
   let extracted = null;
   let qrData = null;
   let screenshotUrl = null;
+  let screenshotPublicId = null;
+
+  const failSubmission = async (message, status, details = {}) => {
+    await deleteCloudinaryScreenshot(screenshotPublicId);
+    const payment = await resetPaymentToUnpaid(paymentId);
+    throw new PaymentSubmissionError(message, status, { ...details, payment });
+  };
 
   try {
     const uploadResult = await cloudinary.uploader.upload(screenshotPath, {
@@ -135,6 +175,7 @@ export async function submitStudentPayment({
       resource_type: 'image',
     });
     screenshotUrl = uploadResult.secure_url;
+    screenshotPublicId = uploadResult.public_id;
 
     let geminiUsed = true;
     let geminiError = null;
@@ -194,7 +235,7 @@ export async function submitStudentPayment({
           issues: [dupIssue, ...validation.issues],
           errors: [dupIssue.message, ...validation.errors],
         };
-        throw new PaymentSubmissionError(dupIssue.message, 409, {
+        await failSubmission(dupIssue.message, 409, {
           validation: dupValidation,
           issues: dupValidation.issues,
         });
@@ -225,7 +266,7 @@ export async function submitStudentPayment({
       } catch (err) {
         if (err.code === '23505') {
           const dupIssue = buildDuplicateTxIssue(validation.txCode, null);
-          throw new PaymentSubmissionError(dupIssue.message, 409, {
+          await failSubmission(dupIssue.message, 409, {
             issues: [dupIssue],
             validation: { passed: false, issues: [dupIssue], errors: [dupIssue.message] },
           });
@@ -234,27 +275,19 @@ export async function submitStudentPayment({
       }
     }
 
-    const reason = validation.errors.join('. ');
-    const [pending] = await db
-      .update(studentPayments)
-      .set({
-        ...baseUpdate,
-        status: 'pending',
-        txCode: validation.txCode || null,
-        rejectionReason: reason,
-      })
-      .where(eq(studentPayments.id, paymentId))
-      .returning();
-
-    throw new PaymentSubmissionError(
+    await failSubmission(
       validation.errors[0] || 'Payment could not be auto-verified',
       422,
       {
-        payment: pending,
         validation,
         issues: validation.issues.filter((i) => i.type === 'error'),
       },
     );
+  } catch (err) {
+    if (err instanceof PaymentSubmissionError) throw err;
+    await deleteCloudinaryScreenshot(screenshotPublicId);
+    await resetPaymentToUnpaid(paymentId);
+    throw err;
   } finally {
     await cleanupTempFile(screenshotPath);
   }
