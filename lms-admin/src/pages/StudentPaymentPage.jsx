@@ -163,17 +163,38 @@ export default function StudentPaymentPage() {
                   </div>
                   <h3 className="payment-month-name">{MONTH_NAMES[payment.month - 1]}</h3>
                   <p className="payment-month-year font-mono">{calendarYear}</p>
+                  {payment.amount && (
+                    <p className="text-[var(--text-xs)] font-mono text-[var(--color-success)] mt-1">{payment.amount} ETB</p>
+                  )}
+                  {payment.paymentMethod && (
+                    <p className="text-[var(--text-xs)] text-[var(--color-text-tertiary)] mt-1 uppercase">{payment.paymentMethod}</p>
+                  )}
+                  {payment.txCode && (
+                    <p className="text-[var(--text-xs)] font-mono text-[var(--color-text-secondary)] mt-1 truncate" title={payment.txCode}>
+                      {payment.txCode}
+                    </p>
+                  )}
+                  {payment.screenshotUrl && (
+                    <a href={payment.screenshotUrl} target="_blank" rel="noopener noreferrer" className="link-accent text-[var(--text-xs)] mt-2 inline-block">
+                      View screenshot
+                    </a>
+                  )}
+                  {payment.rejectionReason && payment.status === 'pending' && (
+                    <p className="text-[var(--text-xs)] text-[var(--color-warning)] mt-2 line-clamp-2" title={payment.rejectionReason}>
+                      {payment.rejectionReason}
+                    </p>
+                  )}
                 </div>
                 <div className="payment-month-actions">
                   {(['unpaid', 'pending', 'complete']).map((status) => (
                     <button
                       key={status}
                       type="button"
-                      disabled={isUpdating}
+                      disabled={isUpdating || payment.status === status}
                       onClick={() => handleStatusChange(payment, status)}
                       className={`payment-status-btn ${payment.status === status ? 'payment-status-btn-active' : ''}`}
                     >
-                      {STATUS_LABELS[status]}
+                      {isUpdating ? <span className="spinner spinner-btn" aria-hidden="true" /> : STATUS_LABELS[status]}
                     </button>
                   ))}
                 </div>

@@ -526,6 +526,12 @@ body {
   border-width: 2px;
 }
 
+.spinner-btn {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
 .loading-row {
   display: flex;
   align-items: center;

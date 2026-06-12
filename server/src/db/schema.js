@@ -137,7 +137,15 @@ export const studentPayments = pgTable('student_payments', {
   month: integer('month').notNull(),
   status: varchar('status', { length: 20 }).notNull().default('unpaid'),
   amount: decimal('amount', { precision: 10, scale: 2 }),
+  paymentMethod: varchar('payment_method', { length: 20 }),
+  txCode: varchar('tx_code', { length: 100 }),
+  senderName: text('sender_name'),
+  senderAccount: text('sender_account'),
+  receiverName: text('receiver_name'),
+  receiverAccount: text('receiver_account'),
   screenshotUrl: text('screenshot_url'),
+  rejectionReason: text('rejection_reason'),
+  submittedAt: timestamp('submitted_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -146,4 +154,5 @@ export const studentPayments = pgTable('student_payments', {
     table.year,
     table.month,
   ),
+  txCodeUnique: index('student_payments_tx_code_unique').on(table.txCode),
 }));

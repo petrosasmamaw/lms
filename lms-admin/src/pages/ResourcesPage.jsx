@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { ExternalLink, Trash2, FolderOpen } from 'lucide-react'
 import { fetchResources, uploadResource, deleteResource } from '../features/resources/resourcesSlice'
 import EmptyState from '../components/ui/EmptyState'
+import LoadingButton from '../components/ui/LoadingButton'
 
 function detectResourceType(filename = '') {
   const name = filename.toLowerCase()
@@ -26,6 +27,7 @@ export default function ResourcesPage() {
   const [title, setTitle] = useState('')
   const [type, setType] = useState('pdf')
   const [file, setFile] = useState(null)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     dispatch(fetchResources(courseId))
@@ -45,13 +47,18 @@ export default function ResourcesPage() {
       alert('Please fill in title and select a file')
       return
     }
-    const uploadType = detectResourceType(file.name)
-    const result = await dispatch(uploadResource({ courseId, title, type: uploadType, file }))
-    if (result.payload) {
-      setTitle('')
-      setFile(null)
-      setType('pdf')
-      dispatch(fetchResources(courseId))
+    setUploading(true)
+    try {
+      const uploadType = detectResourceType(file.name)
+      const result = await dispatch(uploadResource({ courseId, title, type: uploadType, file }))
+      if (result.payload) {
+        setTitle('')
+        setFile(null)
+        setType('pdf')
+        dispatch(fetchResources(courseId))
+      }
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -92,9 +99,9 @@ export default function ResourcesPage() {
             </p>
           )}
         </div>
-        <button type="submit" className="btn-primary w-full" disabled={loading}>
-          {loading ? 'Uploading…' : 'Upload'}
-        </button>
+        <LoadingButton type="submit" className="btn-primary w-full" loading={uploading} loadingText="Uploading…">
+          Upload
+        </LoadingButton>
         {message && <p className="toast-success">{message}</p>}
         {error && (
           <p className="toast-error">

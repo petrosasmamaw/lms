@@ -8,6 +8,7 @@ import { unwrap } from '../api/unwrap'
 import CourseCard from '../components/CourseCard'
 import EmptyState from '../components/ui/EmptyState'
 import { Users, BookOpen, Wallet } from 'lucide-react'
+import LoadingButton from '../components/ui/LoadingButton'
 
 export default function DepartmentYearPage() {
   const { departmentId, year } = useParams()
@@ -134,14 +135,14 @@ export default function DepartmentYearPage() {
                           <Wallet size={14} strokeWidth={1.5} aria-hidden="true" />
                           Payments
                         </Link>
-                        <button
-                          type="button"
+                        <LoadingButton
                           onClick={() => handleToggleVerified(s)}
-                          disabled={togglingId === s.id}
+                          loading={togglingId === s.id}
+                          loadingText="…"
                           className={s.verified ? 'btn-ghost text-sm py-1.5 px-3' : 'btn-primary text-sm py-1.5 px-3'}
                         >
-                          {togglingId === s.id ? '…' : s.verified ? 'Unverify' : 'Verify'}
-                        </button>
+                          {s.verified ? 'Unverify' : 'Verify'}
+                        </LoadingButton>
                       </div>
                     </td>
                   </tr>
@@ -156,9 +157,9 @@ export default function DepartmentYearPage() {
         <div>
           <form onSubmit={handleCreateCourse} className="card flex flex-wrap gap-3 mb-8 p-4">
             <input className="input max-w-sm flex-1 min-w-[10rem]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Course name" required />
-            <button type="submit" className="btn-primary" disabled={creatingCourse || !name}>
-              {creatingCourse ? 'Adding…' : 'Add course'}
-            </button>
+            <LoadingButton type="submit" className="btn-primary" loading={creatingCourse} loadingText="Adding…" disabled={!name}>
+              Add course
+            </LoadingButton>
           </form>
           {loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

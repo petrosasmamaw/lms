@@ -5,6 +5,7 @@ import { fetchCourses } from '../features/courses/coursesSlice'
 import DepartmentCard from '../components/DepartmentCard'
 import EmptyState from '../components/ui/EmptyState'
 import { Building2 } from 'lucide-react'
+import LoadingButton from '../components/ui/LoadingButton'
 
 const YEAR_LABELS = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }
 
@@ -65,9 +66,9 @@ export default function DashboardPage() {
         </div>
         <form onSubmit={handleCreate} className="card flex flex-wrap gap-3 items-center p-4">
           <input className="input max-w-xs min-w-[12rem]" placeholder="New department name" value={name} onChange={(e) => setName(e.target.value)} required />
-          <button type="submit" className="btn-primary whitespace-nowrap" disabled={creating || !name}>
-            {creating ? 'Adding…' : 'Add department'}
-          </button>
+          <LoadingButton type="submit" className="btn-primary whitespace-nowrap" loading={creating} loadingText="Adding…" disabled={!name}>
+            Add department
+          </LoadingButton>
         </form>
       </div>
 

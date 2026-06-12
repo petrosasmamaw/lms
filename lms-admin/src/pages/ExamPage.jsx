@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Check, ClipboardList } from 'lucide-react'
 import { fetchExams, createExam, fetchQuestions, addQuestion } from '../features/exams/examsSlice'
 import EmptyState from '../components/ui/EmptyState'
+import LoadingButton from '../components/ui/LoadingButton'
 
 export default function ExamPage() {
   const { courseId } = useParams()
@@ -61,9 +62,9 @@ export default function ExamPage() {
 
       <form onSubmit={handleCreate} className="card flex flex-wrap gap-3 mb-8 p-4">
         <input className="input max-w-sm flex-1 min-w-[10rem]" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Exam title" required />
-        <button type="submit" className="btn-primary whitespace-nowrap" disabled={createLoading || !title}>
-          {createLoading ? 'Creating…' : 'Create exam'}
-        </button>
+        <LoadingButton type="submit" className="btn-primary whitespace-nowrap" loading={createLoading} loadingText="Creating…" disabled={!title}>
+          Create exam
+        </LoadingButton>
       </form>
 
       <div className="space-y-4">
@@ -100,9 +101,9 @@ export default function ExamPage() {
                       <input className="input" value={c} onChange={(e) => { const next = [...choices]; next[idx] = e.target.value; setChoices(next) }} placeholder={`Choice ${idx + 1}`} />
                     </div>
                   ))}
-                  <button type="button" onClick={() => handleAddQuestion(ex.id)} className="btn-primary mt-3" disabled={addingQuestionFor === ex.id}>
-                    {addingQuestionFor === ex.id ? 'Adding…' : 'Add question'}
-                  </button>
+                  <LoadingButton onClick={() => handleAddQuestion(ex.id)} className="btn-primary mt-3" loading={addingQuestionFor === ex.id} loadingText="Adding…">
+                    Add question
+                  </LoadingButton>
                 </div>
               </div>
             )}

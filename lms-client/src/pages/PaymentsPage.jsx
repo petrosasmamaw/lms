@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import axios from '../api/axiosInstance'
 import { unwrap } from '../api/unwrap'
+import PaymentSubmitModal from '../components/PaymentSubmitModal'
+import { PaymentFailureList, PaymentWarningList } from '../components/PaymentVerificationResult'
 import {
   CheckCircle2,
   Clock,
@@ -28,8 +30,11 @@ export default function PaymentsPage() {
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear())
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedPayment, setSelectedPayment] = useState(null)
+  const [toast, setToast] = useState('')
+  const [toastIssues, setToastIssues] = useState([])
 
-  useEffect(() => {
+  const loadPayments = () => {
     setLoading(true)
     axios
       .get('/payments/me', { params: { year: calendarYear } })
@@ -39,7 +44,33 @@ export default function PaymentsPage() {
       })
       .catch(() => setPayments([]))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadPayments()
   }, [calendarYear])
+
+  const handlePaymentSuccess = (updated, meta = {}) => {
+    setPayments((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+    const issues = meta.issues || []
+    const errors = issues.filter((i) => i.type === 'error')
+    const warnings = issues.filter((i) => i.type === 'warning')
+
+    if (meta.failed || updated.status === 'pending') {
+      setToast('Payment verification failed')
+      setToastIssues(errors.length ? errors : [{ message: updated.rejectionReason || 'Could not verify payment' }])
+      setSelectedPayment(null)
+    } else {
+      setSelectedPayment(null)
+      setToast(updated.status === 'complete' ? 'Payment verified successfully!' : 'Payment submitted')
+      setToastIssues(warnings)
+    }
+
+    setTimeout(() => {
+      setToast('')
+      setToastIssues([])
+    }, 12000)
+  }
 
   const summary = paymentSummary(payments)
 
@@ -50,7 +81,7 @@ export default function PaymentsPage() {
           <p className="eyebrow">Tuition & fees</p>
           <h1 className="page-title mt-1">Monthly payments</h1>
           <p className="page-subtitle">
-            Track your payment status for each month of the year.
+            Pay via Telebirr or CBE Birr and upload your receipt for automatic verification.
           </p>
         </div>
         <div className="payment-year-nav">
@@ -74,14 +105,28 @@ export default function PaymentsPage() {
         </div>
       </header>
 
+      {toast && (
+        <div className="mb-4 space-y-3">
+          <p className={toastIssues.some((i) => i.type === 'error' || !i.type) && toast.includes('failed') ? 'toast-error' : 'toast-success'}>
+            {toast}
+          </p>
+          {toastIssues.length > 0 && toast.includes('failed') && (
+            <PaymentFailureList issues={toastIssues} title="Why it failed" />
+          )}
+          {toastIssues.length > 0 && !toast.includes('failed') && (
+            <PaymentWarningList issues={toastIssues} />
+          )}
+        </div>
+      )}
+
       <div className="payment-banner card">
         <div className="payment-banner-icon">
           <Sparkles size={20} strokeWidth={1.5} aria-hidden="true" />
         </div>
         <div>
-          <p className="font-medium text-[var(--color-text-primary)]">Phase 1 — Payment overview</p>
+          <p className="font-medium text-[var(--color-text-primary)]">AI-powered verification</p>
           <p className="text-[var(--text-sm)] text-[var(--color-text-secondary)] mt-1">
-            Telebirr & CBE Birr payments with screenshot verification are coming in the next phase.
+            Click an unpaid month, choose Telebirr or CBE, fill in details, and upload your screenshot. Gemini AI + QR checks verify your payment automatically.
           </p>
         </div>
       </div>
@@ -131,10 +176,15 @@ export default function PaymentsPage() {
         <div className="payment-month-grid">
           {payments.map((payment) => {
             const Icon = STATUS_ICON[payment.status] || CircleDashed
+            const canPay = payment.status === 'unpaid' || payment.status === 'pending'
             return (
               <article
                 key={payment.id}
-                className={`payment-month-card payment-month-${payment.status}`}
+                className={`payment-month-card payment-month-${payment.status} ${canPay ? 'payment-month-clickable' : ''}`}
+                onClick={canPay ? () => setSelectedPayment(payment) : undefined}
+                onKeyDown={canPay ? (e) => e.key === 'Enter' && setSelectedPayment(payment) : undefined}
+                role={canPay ? 'button' : undefined}
+                tabIndex={canPay ? 0 : undefined}
               >
                 <div className="payment-month-header">
                   <span className="payment-month-index font-mono">{MONTH_SHORT[payment.month - 1]}</span>
@@ -148,13 +198,18 @@ export default function PaymentsPage() {
                   </div>
                   <h3 className="payment-month-name">{MONTH_NAMES[payment.month - 1]}</h3>
                   <p className="payment-month-year font-mono">{calendarYear}</p>
+                  {payment.amount && payment.status === 'complete' && (
+                    <p className="payment-month-amount font-mono">{payment.amount} ETB</p>
+                  )}
                 </div>
-                {payment.status === 'unpaid' && (
-                  <p className="payment-month-hint">Payment options coming soon</p>
+                {payment.status === 'pending' && payment.rejectionReason && (
+                  <p className="payment-month-hint payment-month-hint-pending line-clamp-3" title={payment.rejectionReason}>
+                    {payment.rejectionReason}
+                  </p>
                 )}
-                {payment.status === 'pending' && (
-                  <p className="payment-month-hint payment-month-hint-pending">
-                    Awaiting admin verification
+                {canPay && (
+                  <p className={`payment-month-hint ${payment.status === 'pending' ? 'payment-month-hint-pending' : 'payment-month-hint-pay'}`}>
+                    {payment.status === 'pending' ? 'Tap to resubmit →' : 'Tap to pay →'}
                   </p>
                 )}
                 {payment.status === 'complete' && (
@@ -178,6 +233,15 @@ export default function PaymentsPage() {
             <p className="empty-state-desc">Your monthly payment schedule will appear here.</p>
           </div>
         </div>
+      )}
+
+      {selectedPayment && (
+        <PaymentSubmitModal
+          payment={selectedPayment}
+          calendarYear={calendarYear}
+          onClose={() => setSelectedPayment(null)}
+          onSuccess={handlePaymentSuccess}
+        />
       )}
     </div>
   )
