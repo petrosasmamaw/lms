@@ -13,19 +13,44 @@ config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Middleware to handle SameSite cookies for cross-domain requests
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function(data) {
+    const cookies = res.getHeaders()['set-cookie'];
+    if (cookies && Array.isArray(cookies)) {
+      const isProduction = process.env.BETTER_AUTH_URL?.includes('https');
+      const updatedCookies = cookies.map(cookie => {
+        if (isProduction && !cookie.includes('SameSite=None')) {
+          // Add SameSite=None; Secure for cross-domain HTTPS
+          return cookie.replace(/;?\s*SameSite=[^;]*/gi, '') + '; SameSite=None; Secure';
+        }
+        return cookie;
+      });
+      res.setHeader('set-cookie', updatedCookies);
+    }
+    return originalSend.call(this, data);
+  };
+  next();
+});
+
+// Apply cookie parser before CORS
+app.use(cookieParser());
+
 app.use(cors({
   origin: getAllowedOrigins(),
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-
-app.post('/api/auth/signup-admin', express.json(), signupAdmin);
-app.post('/api/auth/signup-student', express.json(), signupStudent);
-
-app.all('/api/auth/*', toNodeHandler(auth));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+
+// Auth routes
+app.post('/api/auth/signup-admin', express.json(), signupAdmin);
+app.post('/api/auth/signup-student', express.json(), signupStudent);
+app.all('/api/auth/*', toNodeHandler(auth));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

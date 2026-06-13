@@ -5,11 +5,23 @@ import * as schema from '../db/schema.js';
 import { getAllowedOrigins } from './allowedOrigins.js';
 
 const baseURL = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 5001}`;
+const isProduction = process.env.NODE_ENV === 'production' || process.env.BETTER_AUTH_URL?.includes('https');
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL,
   trustedOrigins: getAllowedOrigins(),
+  sessionExpiresIn: 60 * 60 * 24 * 7, // 7 days
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60, // 5 minutes
+    },
+  },
+  advanced: {
+    useSecureCookies: isProduction, // Use secure cookies in production
+    disableCSRFCheck: false,
+  },
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema: {
