@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+import { getApiBaseUrl } from './apiBase'
 
 function buildHeaders(requestHeaders) {
   const headers = new Headers(requestHeaders)
@@ -8,9 +8,10 @@ function buildHeaders(requestHeaders) {
 
 export async function getServerSession(requestHeaders) {
   try {
-    const response = await fetch(`${API_URL.replace(/\/$/, '')}/api/auth/get-session`, {
+    const response = await fetch(`${getApiBaseUrl()}/auth/get-session`, {
       headers: buildHeaders(requestHeaders),
       cache: 'no-store',
+      credentials: 'include',
     })
 
     if (!response.ok) return null

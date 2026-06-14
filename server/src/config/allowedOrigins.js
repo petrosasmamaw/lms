@@ -6,6 +6,11 @@ const DEFAULT_ORIGINS = [
   'http://localhost:3000',
 ];
 
+function normalizeOrigin(url) {
+  if (!url) return null;
+  return url.replace(/\/+$/, '');
+}
+
 /**
  * Origins allowed for CORS and Better Auth trustedOrigins.
  * Set STUDENT_CLIENT_URL / ADMIN_CLIENT_URL / CLIENT_URL in .env for production.
@@ -15,7 +20,10 @@ export function getAllowedOrigins() {
     process.env.CLIENT_URL,
     process.env.STUDENT_CLIENT_URL,
     process.env.ADMIN_CLIENT_URL,
-  ].filter(Boolean);
+    process.env.BETTER_AUTH_URL,
+  ]
+    .map(normalizeOrigin)
+    .filter(Boolean);
 
   return [...new Set([...fromEnv, ...DEFAULT_ORIGINS])];
 }

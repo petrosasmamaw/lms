@@ -6,42 +6,32 @@ import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
 import { testConnection } from './db/index.js';
 import { auth } from './config/auth.js';
 import { getAllowedOrigins } from './config/allowedOrigins.js';
+import { crossOriginCookieMiddleware } from './utils/crossOriginCookies.js';
 import { signupAdmin, signupStudent } from './controllers/authSignupController.js';
 
 config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+const allowedOrigins = getAllowedOrigins();
 
-// Middleware to handle SameSite cookies for cross-domain requests
-app.use((req, res, next) => {
-  const originalSend = res.send;
-  res.send = function(data) {
-    const cookies = res.getHeaders()['set-cookie'];
-    if (cookies && Array.isArray(cookies)) {
-      const isProduction = process.env.BETTER_AUTH_URL?.includes('https');
-      const updatedCookies = cookies.map(cookie => {
-        if (isProduction && !cookie.includes('SameSite=None')) {
-          // Add SameSite=None; Secure for cross-domain HTTPS
-          return cookie.replace(/;?\s*SameSite=[^;]*/gi, '') + '; SameSite=None; Secure';
-        }
-        return cookie;
-      });
-      res.setHeader('set-cookie', updatedCookies);
-    }
-    return originalSend.call(this, data);
-  };
-  next();
-});
+// Required on Render/Heroku so secure cookies and forwarded headers work correctly
+app.set('trust proxy', 1);
 
-// Apply cookie parser before CORS
+app.use(crossOriginCookieMiddleware);
 app.use(cookieParser());
 
 app.use(cors({
-  origin: getAllowedOrigins(),
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin.replace(/\/+$/, ''))) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
 }));
 
 app.use(express.json());

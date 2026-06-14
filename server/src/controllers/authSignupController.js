@@ -6,14 +6,15 @@ import {
   validateDepartment,
 } from '../services/userService.js';
 import { success, error } from '../utils/response.js';
+import { patchCrossOriginCookie } from '../utils/crossOriginCookies.js';
 
 function applyAuthCookies(res, authResponse) {
   const cookies = authResponse.headers.getSetCookie?.() || [];
   if (cookies.length) {
-    cookies.forEach((cookie) => res.append('Set-Cookie', cookie));
+    cookies.forEach((cookie) => res.append('Set-Cookie', patchCrossOriginCookie(cookie)));
   } else {
     const raw = authResponse.headers.get('set-cookie');
-    if (raw) res.append('Set-Cookie', raw);
+    if (raw) res.append('Set-Cookie', patchCrossOriginCookie(raw));
   }
 }
 

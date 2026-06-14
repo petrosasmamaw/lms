@@ -4,8 +4,16 @@ import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { getAllowedOrigins } from './allowedOrigins.js';
 
+import { isCrossOriginProduction } from '../utils/crossOriginCookies.js';
+
 const baseURL = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 5001}`;
-const isProduction = process.env.NODE_ENV === 'production' || process.env.BETTER_AUTH_URL?.includes('https');
+const isProduction = process.env.NODE_ENV === 'production' || isCrossOriginProduction();
+
+const crossOriginCookieAttributes = {
+  sameSite: 'none',
+  secure: true,
+  httpOnly: true,
+};
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
@@ -19,8 +27,15 @@ export const auth = betterAuth({
     },
   },
   advanced: {
-    useSecureCookies: isProduction, // Use secure cookies in production
+    useSecureCookies: isProduction,
     disableCSRFCheck: false,
+    ...(isProduction && {
+      defaultCookieAttributes: crossOriginCookieAttributes,
+      cookies: {
+        session_token: { attributes: crossOriginCookieAttributes },
+        session_data: { attributes: crossOriginCookieAttributes },
+      },
+    }),
   },
   database: drizzleAdapter(db, {
     provider: 'pg',
